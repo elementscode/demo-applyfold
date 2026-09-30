@@ -1,0 +1,16 @@
+import "./style.css";
+
+<Brand (href: string = "/", tag: string = "")>
+  <a class="brand row" href={href}>
+    <span class="brand-mark">
+      <svg width="22" height="22" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+        <path d="M4 3h11l5 5v13H4z" fill="currentColor" opacity="0.18"/>
+        <path d="M4 3h11l5 5v13H4z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/>
+        <path d="M15 3v5h5" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/>
+        <path d="M8 13l2.5 2.5L16 10" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+    </span>
+    applyfold
+    <span e:if={tag} class="brand-tag">{tag}</span>
+  </a>
+</Brand>

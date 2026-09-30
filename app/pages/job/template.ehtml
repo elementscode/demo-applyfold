@@ -1,0 +1,188 @@
+import "./style.css";
+import favicon from "#app/shared/assets/favicons/favicon.svg";
+import { raw, ValidationError, File } from "@elements/app";
+import { PublicLayout } from "#app/shared/templates/public-layout";
+import { Job } from "#app/shared/services/jobs";
+import { apply, ApplyForm, ApplyResult } from "#app/shared/services/applications";
+import { APPLICATION_QUESTION } from "#app/shared/services/hiring";
+
+interface ApplyState {
+  form: ApplyForm;
+  errors: Record<string, string[]>;
+  error: string;
+  sending: boolean;
+  done: ApplyResult | null;
+}
+
+function emptyState(jobId: string): ApplyState {
+  return {
+    form: { jobId, name: "", email: "", phone: "", answer: "" },
+    errors: {},
+    error: "",
+    sending: false,
+    done: null,
+  };
+}
+
+function onSubmit(state: ApplyState) {
+  state.sending = true;
+  state.error = "";
+
+  try {
+    state.done = apply(state.form);
+    state.errors = {};
+  } catch (err: any) {
+    if (err instanceof ValidationError && err.errors) {
+      state.errors = err.errors as Record<string, string[]>;
+    } else {
+      state.error = err.message;
+    }
+  } finally {
+    state.sending = false;
+  }
+}
+
+function onResumeChange(state: ApplyState) {
+  state.errors = { ...state.errors, resume: [] };
+}
+
+function fieldError(state: ApplyState, field: string): string {
+  return state.errors[field]?.[0] ?? "";
+}
+
+function fileSize(file: File): string {
+  return file.size > 1024 * 1024
+    ? `${(file.size / 1024 / 1024).toFixed(1)} MB`
+    : `${Math.max(1, Math.round(file.size / 1024))} KB`;
+}
+
+<html lang="en" class="page-job" (
+  job: Job,
+  descriptionHtml: string,
+  private state: ApplyState = emptyState(job.id),
+)>
+  <head>
+    <title>{job.title} · Careers at applyfold</title>
+    <meta name="description" content={`${job.title}, ${job.team}, ${job.location}. Apply at applyfold.`}>
+    <link rel="icon" type="image/svg+xml" href={favicon} />
+  </head>
+  <body>
+    <PublicLayout>
+      <div class="page-shell job-page">
+        <article class="stack is-lg">
+          <a class="job-back" href="/">← All open roles</a>
+
+          <header class="job-header stack is-sm">
+            <p class="eyebrow">{job.team}</p>
+            <h1>{job.title}</h1>
+            <p class="job-meta cluster is-sm">
+              <span class="pill">{job.location}</span>
+              <span class="pill">Full-time</span>
+            </p>
+          </header>
+
+          <div class="prose job-description">{raw(descriptionHtml)}</div>
+        </article>
+
+        <aside class="card job-apply" id="apply">
+          <div e:if={state.done} class="card-body stack apply-done" role="status">
+            <svg width="32" height="32" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+              <circle cx="12" cy="12" r="10" fill="none" stroke="currentColor" stroke-width="2"/>
+              <path d="M7.5 12.5l3 3 6-6.5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+            <h2>Application sent</h2>
+            <p>
+              Thanks, {state.done!.name}. We emailed a confirmation to
+              <strong>{state.done!.email}</strong>. You'll hear from us within a
+              week either way.
+            </p>
+            <a href="/">See other open roles</a>
+          </div>
+
+          <div e:else class="stack is-xs">
+            <div class="card-head">
+              <h2>Apply for this role</h2>
+              <p>Takes about three minutes.</p>
+            </div>
+
+            <form class="card-body" onsubmit={() => onSubmit(state)} novalidate>
+              <p e:if={state.error} class="error" role="alert">{state.error}</p>
+
+              <div class="field">
+                <label for="apply-name">Full name</label>
+                <input id="apply-name"
+                       name="name"
+                       autocomplete="name"
+                       value={state.form.name}
+                       class={[fieldError(state, "name") && "is-error"]}>
+                <p e:if={fieldError(state, "name")} class="error">{fieldError(state, "name")}</p>
+              </div>
+
+              <div class="field">
+                <label for="apply-email">Email</label>
+                <input id="apply-email"
+                       name="email"
+                       type="email"
+                       autocomplete="email"
+                       autocapitalize="none"
+                       spellcheck={false}
+                       value={state.form.email}
+                       class={[fieldError(state, "email") && "is-error"]}>
+                <p e:if={fieldError(state, "email")} class="error">{fieldError(state, "email")}</p>
+              </div>
+
+              <div class="field">
+                <label for="apply-phone">Phone</label>
+                <input id="apply-phone"
+                       name="phone"
+                       type="tel"
+                       autocomplete="tel"
+                       value={state.form.phone}
+                       class={[fieldError(state, "phone") && "is-error"]}>
+                <p e:if={fieldError(state, "phone")} class="error">{fieldError(state, "phone")}</p>
+              </div>
+
+              <div class="field">
+                <label for="apply-resume">Resume</label>
+                <input id="apply-resume"
+                       name="resume"
+                       type="file"
+                       class="resume-input sr-only"
+                       accept="application/pdf,.pdf"
+                       value={state.form.resume}
+                       onchange={() => onResumeChange(state)}>
+                <label for="apply-resume"
+                       class={["resume-drop", state.form.resume && "is-picked", fieldError(state, "resume") && "is-error"]}>
+                  <svg width="24" height="24" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                    <path d="M6 3h8l4 4v14H6z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/>
+                    <path d="M14 3v4h4M12 11v6M9.5 13.5L12 11l2.5 2.5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+                  </svg>
+                  <span class="resume-drop-text">
+                    <span class="resume-drop-name">{state.form.resume ? state.form.resume.name : "Choose a PDF"}</span>
+                    <span class="resume-drop-hint">{state.form.resume ? `${fileSize(state.form.resume)} · click to change` : "Up to 5 MB"}</span>
+                  </span>
+                </label>
+                <p e:if={fieldError(state, "resume")} class="error">{fieldError(state, "resume")}</p>
+              </div>
+
+              <div class="field">
+                <label for="apply-answer">{APPLICATION_QUESTION}</label>
+                <textarea id="apply-answer"
+                          name="answer"
+                          rows="5"
+                          value={state.form.answer}
+                          class={[fieldError(state, "answer") && "is-error"]}/>
+                <p e:if={fieldError(state, "answer")} class="error">{fieldError(state, "answer")}</p>
+                <p e:else class="hint">A few sentences is plenty.</p>
+              </div>
+
+              <button type="submit" class="is-primary is-block" disabled={state.sending}>
+                {state.sending ? "Sending…" : "Submit application"}
+              </button>
+            </form>
+          </div>
+        </aside>
+      </div>
+    </PublicLayout>
+  </body>
+</html>

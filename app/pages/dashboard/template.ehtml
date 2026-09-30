@@ -1,0 +1,177 @@
+import "./style.css";
+import favicon from "#app/shared/assets/favicons/favicon.svg";
+import { LiveView } from "@elements/app";
+import { StaffLayout } from "#app/shared/templates/staff-layout";
+import { StaffUser } from "#app/shared/services/auth";
+import { Job } from "#app/shared/services/jobs";
+import { Candidate } from "#app/shared/services/applications";
+import { STAGES, STAGE_LABELS, Stage, initials, timeAgo } from "#app/shared/services/hiring";
+
+export interface AssignedCandidate {
+  id: string;
+  name: string;
+  stage: Stage;
+  createdAt: Date;
+  jobTitle: string;
+  scored: boolean;
+}
+
+const FRESH_MS = 2 * 60 * 1000;
+
+function countIn(apps: LiveView<Candidate>, jobId: string, stage: Stage): number {
+  return apps.filter((a) => a.jobId === jobId && a.stage === stage).length;
+}
+
+function activeCount(apps: LiveView<Candidate>): number {
+  return apps.filter((a) => a.stage !== "hired" && a.stage !== "rejected").length;
+}
+
+function latest(apps: LiveView<Candidate>): Candidate[] {
+  return apps.sort((a, b) => +b.createdAt - +a.createdAt).slice(0, 8);
+}
+
+function jobTitle(jobs: Job[], jobId: string): string {
+  return jobs.find((j) => j.id === jobId)?.title ?? "";
+}
+
+function isFresh(c: Candidate): boolean {
+  return Date.now() - +c.createdAt < FRESH_MS;
+}
+
+<html lang="en" class="page-dashboard" (
+  user: StaffUser,
+  jobs: Job[],
+  apps?: LiveView<Candidate>,
+  assigned: AssignedCandidate[],
+)>
+  <head>
+    <title>{user.role === "admin" ? "Dashboard" : "My candidates"} · applyfold hiring</title>
+    <link rel="icon" type="image/svg+xml" href={favicon} />
+  </head>
+  <body>
+    <StaffLayout {user} active="dashboard">
+      <AdminDashboard e:if={apps} {jobs} apps={apps!} />
+      <InterviewerDashboard e:else {user} {assigned} />
+    </StaffLayout>
+  </body>
+</html>
+
+<AdminDashboard (jobs: Job[], apps: LiveView<Candidate>)>
+  <div class="stack is-xl">
+    <div class="dash-head row">
+      <div class="stack is-xs">
+        <h1>Hiring overview</h1>
+        <p>
+          {jobs.filter((j) => j.status === "open").length} open roles ·
+          {activeCount(apps)} candidates in process
+        </p>
+      </div>
+      <a class="button is-primary" href="/hiring/jobs/new">New job</a>
+    </div>
+
+    <div class="dash-grid">
+      <section class="stack">
+        <h2 class="dash-section-title">Roles</h2>
+
+        <div e:for={job of jobs} class={["card job-row", job.status === "closed" && "is-closed"]}>
+          <div class="card-body">
+            <div class="job-row-top row">
+              <div class="stack is-xs">
+                <h3><a href={`/hiring/jobs/${job.id}`}>{job.title}</a></h3>
+                <p class="job-row-meta">{job.team} · {job.location}</p>
+              </div>
+              <div class="cluster is-sm">
+                <span class={["pill", job.status === "open" ? "is-success" : ""]}>
+                  <span class="pill-dot"></span>
+                  {job.status}
+                </span>
+                <a class="button is-sm" href={`/hiring/jobs/${job.id}`}>Open board</a>
+              </div>
+            </div>
+
+            <div class="stage-strip">
+              <a e:for={stage of STAGES} class="stage-count" href={`/hiring/jobs/${job.id}#${stage}`}>
+                <span class={["stage-count-n", countIn(apps, job.id, stage) === 0 && "is-zero"]}>
+                  {countIn(apps, job.id, stage)}
+                </span>
+                <span class="stage-count-label">{STAGE_LABELS[stage]}</span>
+              </a>
+            </div>
+          </div>
+        </div>
+
+        <p e:if={jobs.length === 0} class="card empty-note">
+          No jobs yet. <a href="/hiring/jobs/new">Create your first one.</a>
+        </p>
+      </section>
+
+      <section class="stack">
+        <div class="row" style={{ "justify-content": "space-between" }}>
+          <h2 class="dash-section-title">Latest applications</h2>
+          <span class="live-dot row">Live</span>
+        </div>
+
+        <div class="card feed">
+          <a e:for={c of latest(apps)}
+             href={`/hiring/candidates/${c.id}`}
+             class={["feed-item", isFresh(c) && "is-new"]}>
+            <span class="avatar">{initials(c.name)}</span>
+            <span class="feed-who">
+              <span class="feed-name">{c.name}</span>
+              <span class="feed-job">{jobTitle(jobs, c.jobId)}</span>
+            </span>
+            <span class="stack is-xs" style={{ "align-items": "end" }}>
+              <span class="pill">{STAGE_LABELS[c.stage]}</span>
+              <span class="feed-when">{timeAgo(c.createdAt)}</span>
+            </span>
+          </a>
+          <p e:if={apps.length === 0} class="empty-note">No applications yet.</p>
+        </div>
+      </section>
+    </div>
+  </div>
+</AdminDashboard>
+
+<InterviewerDashboard (user: StaffUser, assigned: AssignedCandidate[])>
+  <div class="stack is-xl">
+    <div class="dash-head row">
+      <div class="stack is-xs">
+        <h1>My candidates</h1>
+        <p>
+          {assigned.filter((c) => !c.scored).length} waiting on your scorecard ·
+          {assigned.length} assigned to you
+        </p>
+      </div>
+    </div>
+
+    <div class="card">
+      <table e:if={assigned.length > 0} class="assigned-table">
+        <thead>
+          <tr>
+            <th>Candidate</th>
+            <th class="hide-sm">Role</th>
+            <th>Stage</th>
+            <th>Your scorecard</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr e:for={c of assigned}>
+            <td>
+              <span class="assigned-name row">
+                <span class="avatar is-sm">{initials(c.name)}</span>
+                <a href={`/hiring/candidates/${c.id}`}>{c.name}</a>
+              </span>
+            </td>
+            <td class="hide-sm">{c.jobTitle}</td>
+            <td><span class="pill">{STAGE_LABELS[c.stage]}</span></td>
+            <td>
+              <span e:if={c.scored} class="pill is-success"><span class="pill-dot"></span>Submitted</span>
+              <a e:else class="button is-sm is-primary" href={`/hiring/candidates/${c.id}#scorecard`}>Fill in</a>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+      <p e:else class="empty-note">Nobody is assigned to you yet. An admin will add you to a candidate's interview loop.</p>
+    </div>
+  </div>
+</InterviewerDashboard>

@@ -1,0 +1,122 @@
+import "./style.css";
+import favicon from "#app/shared/assets/favicons/favicon.svg";
+import { redirect } from "@elements/app";
+import { signin } from "#app/shared/services/auth";
+import { Brand } from "#app/shared/templates/brand";
+import { initials } from "#app/shared/services/hiring";
+
+export const DEMO_PASSWORD = "applyfold";
+
+export interface DemoLogin {
+  name: string;
+  email: string;
+  title: string;
+  role: "admin" | "interviewer";
+}
+
+interface SigninForm {
+  email: string;
+  password: string;
+  error: string;
+  busy: boolean;
+}
+
+function onSubmit(form: SigninForm) {
+  form.busy = true;
+
+  try {
+    signin(form.email, form.password);
+    form.error = "";
+    redirect("/hiring");
+  } catch (err: any) {
+    form.error = err.message;
+    form.busy = false;
+  }
+}
+
+function onDemoClick(form: SigninForm, login: DemoLogin) {
+  form.email = login.email;
+  form.password = DEMO_PASSWORD;
+  onSubmit(form);
+}
+
+<html lang="en" class="page-signin" (
+  demoLogins: DemoLogin[],
+  private form: SigninForm = { email: "", password: "", error: "", busy: false },
+)>
+  <head>
+    <title>Sign in · applyfold hiring</title>
+    <link rel="icon" type="image/svg+xml" href={favicon} />
+  </head>
+  <body>
+    <main class="signin-main center">
+      <div class="signin-column stack is-lg">
+        <Brand tag="hiring" />
+
+        <div class="card">
+          <div class="card-body stack">
+            <div class="signin-head stack is-xs">
+              <h1 class="text-2xl">Sign in to your hiring team</h1>
+              <p>Boards, candidates, and scorecards.</p>
+            </div>
+
+            <form class="stack" onsubmit={() => onSubmit(form)}>
+              <p e:if={form.error} class="error" role="alert">{form.error}</p>
+
+              <div class="field">
+                <label for="email">Work email</label>
+                <input id="email"
+                       name="email"
+                       type="email"
+                       value={form.email}
+                       autocomplete="email"
+                       autocapitalize="none"
+                       spellcheck={false}
+                       placeholder="you@applyfold.test"
+                       required>
+              </div>
+
+              <div class="field">
+                <label for="password">Password</label>
+                <input id="password"
+                       name="password"
+                       type="password"
+                       value={form.password}
+                       autocomplete="current-password"
+                       required>
+              </div>
+
+              <button type="submit" class="is-primary is-block" disabled={form.busy}>
+                {form.busy ? "Signing in…" : "Sign in"}
+              </button>
+            </form>
+          </div>
+        </div>
+
+        <div e:if={demoLogins.length > 0} class="card demo-logins">
+          <div class="card-head">
+            <h2>Demo accounts</h2>
+            <p>Click one to sign in as that person.</p>
+          </div>
+          <div class="card-body stack is-sm">
+            <button e:for={login of demoLogins}
+                    type="button"
+                    class="demo-login"
+                    disabled={form.busy}
+                    onclick={() => onDemoClick(form, login)}>
+              <span class="avatar">{initials(login.name)}</span>
+              <span class="demo-login-who">
+                <span class="demo-login-name">{login.name}</span>
+                <span class="demo-login-email">{login.email}</span>
+              </span>
+              <span class={["pill", login.role === "admin" && "is-accent"]}>{login.role}</span>
+            </button>
+            <p class="demo-password">Every demo account's password is <code>{DEMO_PASSWORD}</code>.</p>
+          </div>
+        </div>
+
+        <a class="signin-back" href="/">← Back to the careers page</a>
+      </div>
+    </main>
+  </body>
+</html>

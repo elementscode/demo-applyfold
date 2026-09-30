@@ -1,0 +1,32 @@
+import "./style.css";
+
+/**
+ * The note an admin can choose to send when a candidate moves to rejected.
+ *
+ * @email
+ */
+<html (name: string, jobTitle: string, senderName: string)>
+  <body class="email rejection">
+    <div class="email-wrap">
+      <p class="brand">applyfold careers</p>
+      <h1>An update on your application</h1>
+      <p>Hi {name},</p>
+      <p>
+        Thank you for the time you put into applying for
+        <strong>{jobTitle}</strong>, and for telling us about your work. After
+        careful consideration, we've decided not to move forward with your
+        application for this role.
+      </p>
+      <p>
+        This was a hard call among a strong group of candidates, and it isn't a
+        judgment of your ability. We'd be glad to hear from you again for a
+        future opening.
+      </p>
+      <p>Wishing you the best in your search,<br>{senderName}, applyfold hiring team</p>
+
+      <div class="email-footer">
+        <p>applyfold · <a href="/">See our other open roles</a></p>
+      </div>
+    </div>
+  </body>
+</html>

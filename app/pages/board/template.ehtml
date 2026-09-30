@@ -1,0 +1,156 @@
+import "./style.css";
+import favicon from "#app/shared/assets/favicons/favicon.svg";
+import { LiveView } from "@elements/app";
+import { StaffLayout } from "#app/shared/templates/staff-layout";
+import { StaffUser } from "#app/shared/services/auth";
+import { Job } from "#app/shared/services/jobs";
+import { Candidate } from "#app/shared/services/applications";
+import { RejectDialog, RejectPrompt, emptyRejectPrompt } from "#app/shared/templates/reject-dialog";
+import { STAGES, STAGE_LABELS, Stage, initials, timeAgo, formatScore } from "#app/shared/services/hiring";
+
+interface BoardUi {
+  dragId: string;
+  overStage: string;
+  reject: RejectPrompt;
+}
+
+const FRESH_MS = 2 * 60 * 1000;
+
+function inStage(cards: LiveView<Candidate>, stage: Stage): Candidate[] {
+  return cards
+    .filter((c) => c.stage === stage)
+    .sort((a, b) => +b.stageChangedAt - +a.stageChangedAt);
+}
+
+function onDragStart(e: DragEvent, ui: BoardUi, card: Candidate) {
+  ui.dragId = card.id;
+  e.dataTransfer?.setData("text/plain", card.id);
+
+  if (e.dataTransfer) {
+    e.dataTransfer.effectAllowed = "move";
+  }
+}
+
+function onDragEnd(ui: BoardUi) {
+  ui.dragId = "";
+  ui.overStage = "";
+}
+
+function onDragOver(e: DragEvent, ui: BoardUi, stage: Stage) {
+  e.preventDefault();
+
+  if (e.dataTransfer) {
+    e.dataTransfer.dropEffect = "move";
+  }
+
+  ui.overStage = stage;
+}
+
+function onDrop(e: DragEvent, cards: LiveView<Candidate>, ui: BoardUi, stage: Stage) {
+  e.preventDefault();
+
+  let id = ui.dragId || e.dataTransfer?.getData("text/plain") || "";
+  let card = cards.get(id);
+
+  ui.dragId = "";
+  ui.overStage = "";
+
+  if (!card || card.stage === stage) {
+    return;
+  }
+
+  cards.update({ ...card, stage, stageChangedAt: new Date() });
+
+  if (stage === "rejected" && !card.rejectionSentAt) {
+    ui.reject.error = "";
+    ui.reject.target = { id: card.id, name: card.name, email: card.email };
+  }
+}
+
+function isFresh(c: Candidate): boolean {
+  return Date.now() - +c.createdAt < FRESH_MS;
+}
+
+<html lang="en" class="page-board" (
+  user: StaffUser,
+  job: Job,
+  cards: LiveView<Candidate>,
+  private ui: BoardUi = { dragId: "", overStage: "", reject: emptyRejectPrompt() },
+)>
+  <head>
+    <title>{job.title} board · applyfold hiring</title>
+    <link rel="icon" type="image/svg+xml" href={favicon} />
+  </head>
+  <body>
+    <StaffLayout {user} active="dashboard" full={true}>
+      <div class="stack is-lg">
+        <div class="board-head row">
+          <div class="stack is-xs">
+            <a class="board-crumb" href="/hiring">← Dashboard</a>
+            <h1>{job.title}</h1>
+            <p class="board-meta cluster is-sm">
+              <span>{job.team} · {job.location}</span>
+              <span class={["pill", job.status === "open" && "is-success"]}><span class="pill-dot"></span>{job.status}</span>
+              <span>{cards.length} candidates</span>
+            </p>
+          </div>
+          <div class="cluster is-sm">
+            <span class="live-dot row board-hint">Drag a card to move it. Updates live.</span>
+            <a class="button" href={`/careers/${job.id}`} target="_blank" rel="noopener">View posting</a>
+            <a class="button" href={`/hiring/jobs/${job.id}/edit`}>Edit job</a>
+          </div>
+        </div>
+
+        <div class="board">
+          <section e:for={stage of STAGES}
+                   id={stage}
+                   class={["column", ui.overStage === stage && "is-over"]}
+                   aria-label={STAGE_LABELS[stage]}
+                   ondragover={(e) => onDragOver(e, ui, stage)}
+                   ondrop={(e) => onDrop(e, cards, ui, stage)}>
+            <header class="column-head row">
+              <span class={["stage-pill row", `is-${stage}`]} style={{ gap: "var(--space-2)" }}>
+                <span class="pill-dot"></span>
+                {STAGE_LABELS[stage]}
+              </span>
+              <span class="column-count">{inStage(cards, stage).length}</span>
+            </header>
+
+            <CandidateCard e:for={card of inStage(cards, stage)} {card} {ui} fresh={isFresh(card)} />
+
+            <p e:if={inStage(cards, stage).length === 0} class="column-empty">Drop here</p>
+          </section>
+        </div>
+      </div>
+
+      <RejectDialog e:if={ui.reject.target} prompt={ui.reject} jobTitle={job.title} />
+    </StaffLayout>
+  </body>
+</html>
+
+<CandidateCard (card: Candidate, ui: BoardUi, fresh: boolean)>
+  <article class={["cand", ui.dragId === card.id && "is-dragging", fresh && "is-new"]}
+           draggable="true"
+           ondragstart={(e) => onDragStart(e, ui, card)}
+           ondragend={() => onDragEnd(ui)}>
+    <div class="cand-top row">
+      <span class="avatar is-sm">{initials(card.name)}</span>
+      <a class="cand-name" href={`/hiring/candidates/${card.id}`} draggable="false">{card.name}</a>
+    </div>
+    <div class="cand-foot row">
+      <span>Applied {timeAgo(card.createdAt)}</span>
+      <span e:if={card.scoreAvg !== null} class="score" title={`${card.scorecardCount} scorecard${card.scorecardCount === 1 ? "" : "s"}`}>
+        <svg width="12" height="12" viewBox="0 0 20 20" aria-hidden="true" focusable="false">
+          <path d="M10 1.5l2.6 5.3 5.9.9-4.3 4.1 1 5.8L10 14.9l-5.2 2.7 1-5.8L1.5 7.7l5.9-.9z" fill="currentColor"/>
+        </svg>
+        {formatScore(card.scoreAvg)}
+      </span>
+      <span e:if={card.stage === "rejected" && card.rejectionSentAt} class="cand-sent row" title="Rejection email sent">
+        <svg width="12" height="12" viewBox="0 0 20 20" aria-hidden="true" focusable="false">
+          <path d="M2 5h16v10H2z M2 5l8 6 8-6" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/>
+        </svg>
+        sent
+      </span>
+    </div>
+  </article>
+</CandidateCard>

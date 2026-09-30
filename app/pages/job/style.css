@@ -1,0 +1,99 @@
+@import "#app/shared/templates/public-layout/style.css";
+
+.job-page {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 26rem;
+  gap: var(--space-12);
+  align-items: start;
+  padding-block: var(--space-10) var(--space-16);
+}
+
+.job-back {
+  font-size: var(--text-sm);
+}
+
+.job-header .job-meta {
+  color: var(--ink-soft);
+}
+
+.job-description h2 {
+  font-size: var(--text-lg);
+  margin-top: var(--space-8);
+}
+
+.job-apply {
+  position: sticky;
+  top: var(--space-6);
+}
+
+.job-apply .card-head p {
+  color: var(--ink-soft);
+  font-size: var(--text-sm);
+}
+
+
+.apply-done svg {
+  color: var(--success);
+}
+
+@media (max-width: 60rem) {
+  .job-page {
+    grid-template-columns: minmax(0, 1fr);
+    gap: var(--space-8);
+    padding-block: var(--space-6) var(--space-10);
+  }
+
+  .job-apply {
+    position: static;
+  }
+}
+
+.resume-drop {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-3) var(--space-4);
+  border: 1px dashed var(--rule-strong);
+  border-radius: var(--radius-md);
+  color: var(--ink-soft);
+  cursor: pointer;
+  transition: border-color 120ms ease, background 120ms ease;
+}
+
+.resume-drop:hover,
+.resume-input:focus-visible + .resume-drop {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+  color: var(--ink);
+}
+
+.resume-drop.is-picked {
+  border-style: solid;
+  color: var(--ink);
+}
+
+.resume-drop.is-error {
+  border-color: var(--danger);
+}
+
+.resume-drop svg {
+  flex: none;
+  color: var(--accent);
+}
+
+.resume-drop-text {
+  display: grid;
+  min-width: 0;
+}
+
+.resume-drop-name {
+  font-weight: var(--weight-medium);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.resume-drop-hint {
+  font-size: var(--text-sm);
+  color: var(--ink-soft);
+}

@@ -1,0 +1,146 @@
+import "./style.css";
+import favicon from "#app/shared/assets/favicons/favicon.svg";
+import { raw, redirect, ValidationError } from "@elements/app";
+import { StaffLayout } from "#app/shared/templates/staff-layout";
+import { StaffUser } from "#app/shared/services/auth";
+import { saveJob, JobInput } from "#app/shared/services/jobs";
+import { renderMarkdown } from "#app/shared/services/markdown";
+
+interface EditState {
+  errors: Record<string, string[]>;
+  error: string;
+  saving: boolean;
+}
+
+function onSave(jobId: string | null, input: JobInput, state: EditState) {
+  state.saving = true;
+  state.error = "";
+
+  try {
+    let job = saveJob(jobId, input);
+    state.errors = {};
+    redirect(`/hiring/jobs/${job.id}`);
+  } catch (err: any) {
+    if (err instanceof ValidationError && err.errors) {
+      state.errors = err.errors as Record<string, string[]>;
+    } else {
+      state.error = err.message;
+    }
+
+    state.saving = false;
+  }
+}
+
+function fieldError(state: EditState, field: string): string {
+  return state.errors[field]?.[0] ?? "";
+}
+
+<html lang="en" class="page-job-edit" (
+  user: StaffUser,
+  jobId: string | null,
+  job: JobInput,
+  private input: JobInput = { ...job },
+  private state: EditState = { errors: {}, error: "", saving: false },
+)>
+  <head>
+    <title>{jobId ? "Edit job" : "New job"} · applyfold hiring</title>
+    <link rel="icon" type="image/svg+xml" href={favicon} />
+  </head>
+  <body>
+    <StaffLayout {user} active="dashboard">
+      <form class="stack is-lg" onsubmit={() => onSave(jobId, input, state)} novalidate>
+        <div class="edit-head row">
+          <div class="stack is-xs">
+            <a class="edit-crumb" href={jobId ? `/hiring/jobs/${jobId}` : "/hiring"}>
+              ← {jobId ? "Back to the board" : "Dashboard"}
+            </a>
+            <h1>{jobId ? `Edit ${input.title || "job"}` : "New job"}</h1>
+          </div>
+          <div class="cluster is-sm">
+            <a class="button" href={jobId ? `/hiring/jobs/${jobId}` : "/hiring"}>Cancel</a>
+            <button type="submit" class="is-primary" disabled={state.saving}>
+              {state.saving ? "Saving…" : jobId ? "Save changes" : "Create job"}
+            </button>
+          </div>
+        </div>
+
+        <p e:if={state.error} class="error" role="alert">{state.error}</p>
+
+        <div class="edit-grid">
+          <section class="card">
+            <div class="card-body stack">
+              <div class="field">
+                <label for="job-title">Title</label>
+                <input id="job-title"
+                       name="title"
+                       value={input.title}
+                       placeholder="Senior Backend Engineer"
+                       class={[fieldError(state, "title") && "is-error"]}>
+                <p e:if={fieldError(state, "title")} class="error">{fieldError(state, "title")}</p>
+              </div>
+
+              <div class="edit-pair">
+                <div class="field">
+                  <label for="job-team">Team</label>
+                  <input id="job-team"
+                         name="team"
+                         value={input.team}
+                         placeholder="Platform"
+                         class={[fieldError(state, "team") && "is-error"]}>
+                  <p e:if={fieldError(state, "team")} class="error">{fieldError(state, "team")}</p>
+                </div>
+
+                <div class="field">
+                  <label for="job-location">Location</label>
+                  <input id="job-location"
+                         name="location"
+                         value={input.location}
+                         placeholder="Remote (US)"
+                         class={[fieldError(state, "location") && "is-error"]}>
+                  <p e:if={fieldError(state, "location")} class="error">{fieldError(state, "location")}</p>
+                </div>
+              </div>
+
+              <div class="field">
+                <label for="job-status">Status</label>
+                <select id="job-status" name="status" value={input.status}>
+                  <option value="open">Open: listed on the careers page</option>
+                  <option value="closed">Closed: hidden, no new applications</option>
+                </select>
+                <p e:if={fieldError(state, "status")} class="error">{fieldError(state, "status")}</p>
+              </div>
+
+              <div class="field">
+                <label for="job-description">Description</label>
+                <textarea id="job-description"
+                          name="description"
+                          rows="18"
+                          class="edit-md"
+                          value={input.description}/>
+                <p class="hint">Markdown: ## for a heading, - for a list item, **bold**.</p>
+              </div>
+            </div>
+          </section>
+
+          <section class="card edit-preview">
+            <div class="card-head">
+              <h2>Preview</h2>
+              <p>How the posting reads on the careers page.</p>
+            </div>
+            <div class="card-body stack">
+              <div class="stack is-xs">
+                <p class="eyebrow">{input.team || "Team"}</p>
+                <h3 class="edit-preview-title">{input.title || "Job title"}</h3>
+                <p class="cluster is-sm">
+                  <span class="pill">{input.location || "Location"}</span>
+                  <span class={["pill", input.status === "open" && "is-success"]}><span class="pill-dot"></span>{input.status}</span>
+                </p>
+              </div>
+              <div class="prose edit-prose">{raw(renderMarkdown(input.description))}</div>
+            </div>
+          </section>
+        </div>
+      </form>
+    </StaffLayout>
+  </body>
+</html>

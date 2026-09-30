@@ -1,0 +1,22 @@
+@import "#app/shared/styles/page.css";
+@import "#app/shared/templates/brand/style.css";
+
+.public-header {
+  border-bottom: 1px solid var(--rule-soft);
+}
+
+.public-header-inner {
+  justify-content: space-between;
+  padding-block: var(--space-4);
+}
+
+.public-footer {
+  border-top: 1px solid var(--rule-soft);
+  color: var(--ink-soft);
+  font-size: var(--text-sm);
+}
+
+.public-footer-inner {
+  justify-content: space-between;
+  padding-block: var(--space-6);
+}

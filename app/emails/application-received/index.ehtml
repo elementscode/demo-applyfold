@@ -1,0 +1,29 @@
+import "./style.css";
+
+/**
+ * Sent to an applicant the moment their application is saved.
+ *
+ * @email
+ */
+<html (name: string, jobTitle: string, jobId: string)>
+  <body class="email application-received">
+    <div class="email-wrap">
+      <p class="brand">applyfold careers</p>
+      <h1>Thanks for applying, {name}.</h1>
+      <p>
+        We received your application for <strong>{jobTitle}</strong>. A real
+        person on our hiring team reads every one, and you'll hear from us
+        within a week either way.
+      </p>
+      <p>
+        Nothing else to do for now. If you'd like to add anything, reply to
+        this email and it will reach the team.
+      </p>
+      <p><a href={`/careers/${jobId}`}>View the job posting</a></p>
+
+      <div class="email-footer">
+        <p>applyfold · You're receiving this because you applied for a role with us.</p>
+      </div>
+    </div>
+  </body>
+</html>

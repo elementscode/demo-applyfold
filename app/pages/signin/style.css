@@ -1,0 +1,69 @@
+@import "#app/shared/styles/page.css";
+@import "#app/shared/templates/brand/style.css";
+@import "#app/shared/styles/hiring.css";
+
+.signin-main {
+  min-height: 100vh;
+  padding: var(--space-10) var(--space-5);
+  background: var(--bg-soft);
+}
+
+.signin-column {
+  width: 100%;
+  max-width: 26rem;
+}
+
+.signin-column > .brand {
+  align-self: center;
+}
+
+.signin-head p {
+  color: var(--ink-soft);
+}
+
+.demo-logins .card-head p {
+  color: var(--ink-soft);
+  font-size: var(--text-sm);
+}
+
+.demo-login {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  width: 100%;
+  height: auto;
+  padding: var(--space-3);
+  justify-content: flex-start;
+  text-align: start;
+}
+
+.demo-login-who {
+  display: grid;
+  flex: 1;
+  min-width: 0;
+}
+
+.demo-login-name {
+  font-weight: var(--weight-medium);
+  color: var(--ink);
+}
+
+.demo-login-email {
+  font-size: var(--text-sm);
+  color: var(--ink-soft);
+  font-family: var(--font-mono);
+}
+
+.demo-password {
+  font-size: var(--text-sm);
+  color: var(--ink-soft);
+}
+
+.demo-password code {
+  color: var(--ink);
+}
+
+.signin-back {
+  align-self: center;
+  font-size: var(--text-sm);
+}
