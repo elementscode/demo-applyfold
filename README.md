@@ -1,12 +1,12 @@
-![Applyfold, an applicant tracking system built with Elements: the Senior Backend Engineer pipeline board with candidates across applied, screen, interview, offer, hired and rejected, with scorecard averages.](POSTER_URL)
+![Applyfold, an applicant tracking system built with Elements: the Senior Backend Engineer pipeline board with candidates across applied, screen, interview, offer, hired and rejected, with scorecard averages.](https://elements.dev/demos/01a0f3be-aac0-7295-8f51-ea54afb37bfb/poster?v=16fc5b3a438f)
 
 # Applyfold
 
 > A demo app built with [Elements](https://elements.dev).
 
-A public careers page with PDF resume uploads, a drag-and-drop pipeline board for each job, and candidate pages with interview scorecards and notes, all live.
+A careers page with PDF resume uploads, a drag-and-drop pipeline board for each job, and interview scorecards, all live.
 
-**Demo:** [Applyfold](TBD)
+**Demo:** [Applyfold](https://elements.dev/demos/01a0f3be-aac0-7295-8f51-ea54afb37bfb)
 
 ## Agent specs
 
