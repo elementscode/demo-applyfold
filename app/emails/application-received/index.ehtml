@@ -1,0 +1,29 @@
+import "./style.css";
+import { COMPANY } from "#app/shared/services/hiring";
+
+/**
+ * Sent to an applicant the moment their application lands.
+ *
+ * @email
+ */
+<html (name: string, jobTitle: string, jobId: string)>
+  <body class="email application-received">
+    <div class="email-wrap">
+      <h1>Thanks for applying, {name.split(" ")[0]}</h1>
+      <p>
+        We received your application for <strong>{jobTitle}</strong> at {COMPANY}.
+        A person on our hiring team reads every application, usually within a week.
+      </p>
+      <p>
+        If it looks like a fit, we will email you to set up a short call. If not, we
+        will still let you know. You will not be left wondering.
+      </p>
+      <p><a href={`/jobs/${jobId}`}>View the role</a></p>
+      <p>The {COMPANY} hiring team</p>
+
+      <div class="email-footer">
+        <p>You are receiving this because you applied at {COMPANY} Careers.</p>
+      </div>
+    </div>
+  </body>
+</html>

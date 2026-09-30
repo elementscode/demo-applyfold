@@ -1,0 +1,254 @@
+import "./style.css";
+import { sql, email, raw, File, FieldErrors, ValidationError, NotFoundError } from "@elements/app";
+import favicon from "#app/shared/assets/favicons/favicon.svg";
+import { CareersLayout } from "#app/shared/templates/careers-layout";
+import { Job } from "#app/shared/services/jobs";
+import { COMPANY } from "#app/shared/services/hiring";
+import ApplicationReceivedEmail from "#app/emails/application-received";
+
+const MAX_RESUME_BYTES = 5 * 1024 * 1024;
+
+export interface ApplyForm {
+  jobId: string;
+  name: string;
+  email: string;
+  phone: string;
+  answer: string;
+  resume: File | undefined;
+}
+
+interface Apply {
+  form: ApplyForm;
+  errors: Record<string, string>;
+  sentTo: string;
+  busy: boolean;
+}
+
+function isPdf(file: File): boolean {
+  let d = file.data;
+
+  // "%PDF" at the start of the file. The browser's content type is whatever
+  // the uploader says it is, so the bytes decide.
+  return d.length > 4 && d[0] === 0x25 && d[1] === 0x50 && d[2] === 0x44 && d[3] === 0x46;
+}
+
+/** @rpc */
+export function apply(form: ApplyForm): string {
+  let job = sql<{ id: string; title: string; status: string }>(`
+    select id, title, status from jobs where id = ${form.jobId}
+  `).first();
+
+  if (!job || job.status !== "open") {
+    throw new NotFoundError("This role is no longer accepting applications.");
+  }
+
+  let name = form.name.trim();
+  let address = form.email.trim().toLowerCase();
+  let phone = form.phone.trim();
+  let answer = form.answer.trim();
+  let errors: FieldErrors<ApplyForm> = {};
+
+  if (!name) {
+    errors.name = ["Enter your name."];
+  }
+
+  if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(address)) {
+    errors.email = ["Enter a valid email address."];
+  }
+
+  if (phone.replace(/\D/g, "").length < 7) {
+    errors.phone = ["Enter a phone number we can reach you on."];
+  }
+
+  if (!form.resume) {
+    errors.resume = ["Attach your resume as a PDF."];
+  } else if (form.resume.size > MAX_RESUME_BYTES) {
+    errors.resume = ["Your resume must be under 5 MB."];
+  } else if (!isPdf(form.resume)) {
+    errors.resume = ["Your resume must be a PDF."];
+  }
+
+  if (!answer) {
+    errors.answer = ["Answer the question in a few sentences."];
+  } else if (answer.length > 4000) {
+    errors.answer = ["Keep your answer under 4,000 characters."];
+  }
+
+  if (Object.keys(errors).length > 0) {
+    throw new ValidationError(errors);
+  }
+
+  let resume = form.resume!;
+
+  sql(`
+    insert into applications (jobId, name, email, phone, answer, resumeName, resumeSize, resumeData)
+         values (${job.id}, ${name}, ${address}, ${phone}, ${answer}, ${resume.name}, ${resume.size}, ${resume.data})
+  `);
+
+  email({
+    to: address,
+    subject: `We received your application for ${job.title}`,
+    body: new ApplicationReceivedEmail({ name, jobTitle: job.title, jobId: job.id }),
+  });
+
+  return address;
+}
+
+function onSubmit(state: Apply) {
+  state.busy = true;
+
+  try {
+    state.sentTo = apply(state.form);
+    state.errors = {};
+  } catch (err: any) {
+    state.errors = firstErrors(err.errors) ?? { form: err.message };
+  } finally {
+    state.busy = false;
+  }
+}
+
+function firstErrors(errors?: Record<string, string[]>): Record<string, string> | undefined {
+  if (!errors) {
+    return undefined;
+  }
+
+  let out: Record<string, string> = {};
+
+  for (let [field, messages] of Object.entries(errors)) {
+    out[field] = messages[0];
+  }
+
+  return out;
+}
+
+function emptyForm(jobId: string): ApplyForm {
+  return { jobId, name: "", email: "", phone: "", answer: "", resume: undefined };
+}
+
+<html lang="en" class="page-job" (
+  job: Job,
+  description: string,
+  private state: Apply = { form: emptyForm(job.id), errors: {}, sentTo: "", busy: false },
+)>
+  <head>
+    <title>{job.title} at {COMPANY}</title>
+    <meta name="description" content={`${job.title}, ${job.team}. ${job.location}.`}>
+    <link rel="icon" type="image/svg+xml" href={favicon} />
+  </head>
+  <body>
+    <CareersLayout>
+      <div class="page-shell job-page stack is-xl">
+        <a href="/" class="job-back link-muted">← All open roles</a>
+
+        <div class="job-layout">
+          <div class="stack is-2xl">
+            <header class="job-head stack is-sm">
+              <p class="eyebrow">{job.team}</p>
+              <h1>{job.title}</h1>
+              <p class="job-meta">{job.location}</p>
+            </header>
+
+            <div class="callout is-warning" e:if={job.status === "closed"}>
+              <p>This role is closed and no longer accepting applications.</p>
+            </div>
+
+            <article class="prose">{raw(description)}</article>
+
+            <section class="card apply-card" id="apply" e:if={job.status === "open"}>
+              <div class="card-body" e:if={state.sentTo}>
+                <div class="apply-done stack is-md">
+                  <span class="apply-done-mark">
+                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                      <path d="M5 12.5l4.5 4.5L19 7.5" stroke="currentColor" stroke-width="2.25" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                  </span>
+                  <h2>Application sent</h2>
+                  <p>
+                    Thanks, {state.form.name.trim().split(" ")[0]}. We sent a confirmation to
+                    <strong>{state.sentTo}</strong>. Someone on the team will read it within a week.
+                  </p>
+                  <p><a href="/">See other open roles</a></p>
+                </div>
+              </div>
+
+              <div class="card-head" e:if={!state.sentTo}>
+                <h2>Apply for this role</h2>
+              </div>
+
+              <div class="card-body" e:if={!state.sentTo}>
+                <form class="is-grid" onsubmit={() => onSubmit(state)} novalidate>
+                  <p class="error field is-full" role="alert" e:if={state.errors.form}>{state.errors.form}</p>
+
+                  <div class="field">
+                    <label for="apply-name">Full name</label>
+                    <input id="apply-name" name="name" autocomplete="name"
+                           class={state.errors.name && "is-error"}
+                           value={state.form.name} required>
+                    <p class="error" e:if={state.errors.name}>{state.errors.name}</p>
+                  </div>
+
+                  <div class="field">
+                    <label for="apply-email">Email</label>
+                    <input id="apply-email" name="email" type="email" autocomplete="email"
+                           autocapitalize="none" spellcheck={false}
+                           class={state.errors.email && "is-error"}
+                           value={state.form.email} required>
+                    <p class="error" e:if={state.errors.email}>{state.errors.email}</p>
+                  </div>
+
+                  <div class="field">
+                    <label for="apply-phone">Phone</label>
+                    <input id="apply-phone" name="phone" type="tel" autocomplete="tel"
+                           class={state.errors.phone && "is-error"}
+                           value={state.form.phone} required>
+                    <p class="error" e:if={state.errors.phone}>{state.errors.phone}</p>
+                  </div>
+
+                  <div class="field">
+                    <label for="apply-resume">Resume (PDF)</label>
+                    <input id="apply-resume" name="resume" type="file" accept="application/pdf,.pdf"
+                           class={state.errors.resume && "is-error"}
+                           value={state.form.resume} required>
+                    <p class="error" e:if={state.errors.resume}>{state.errors.resume}</p>
+                    <p class="hint" e:else>PDF, up to 5 MB.</p>
+                  </div>
+
+                  <div class="field is-full">
+                    <label for="apply-answer" class="apply-question">{job.question}</label>
+                    <textarea id="apply-answer" name="answer" rows={5}
+                              class={state.errors.answer && "is-error"}
+                              value={state.form.answer} required></textarea>
+                    <p class="error" e:if={state.errors.answer}>{state.errors.answer}</p>
+                    <p class="hint" e:else>A few honest sentences beat a polished essay.</p>
+                  </div>
+
+                  <div class="field is-full">
+                    <button type="submit" class={["is-primary", state.busy && "is-loading"]} disabled={state.busy}>
+                      Submit application
+                    </button>
+                  </div>
+                </form>
+              </div>
+            </section>
+          </div>
+
+          <aside class="job-aside card">
+            <div class="card-body stack is-lg">
+              <dl>
+                <div>
+                  <dt>Team</dt>
+                  <dd>{job.team}</dd>
+                </div>
+                <div>
+                  <dt>Location</dt>
+                  <dd>{job.location}</dd>
+                </div>
+              </dl>
+              <a href="#apply" class="button is-primary is-block" e:if={job.status === "open"}>Apply now</a>
+            </div>
+          </aside>
+        </div>
+      </div>
+    </CareersLayout>
+  </body>
+</html>

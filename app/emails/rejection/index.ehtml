@@ -1,0 +1,35 @@
+import "./style.css";
+import { COMPANY } from "#app/shared/services/hiring";
+
+/**
+ * The note a candidate receives when they are moved to rejected and an admin
+ * chooses to tell them.
+ *
+ * @email
+ */
+<html (name: string, jobTitle: string)>
+  <body class="email rejection">
+    <div class="email-wrap">
+      <h1>Your application for {jobTitle}</h1>
+      <p>Hi {name.split(" ")[0]},</p>
+      <p>
+        Thank you for the time you put into applying for the {jobTitle} role at
+        {COMPANY}, and for telling us about your work.
+      </p>
+      <p>
+        After careful consideration, we have decided not to move forward with your
+        application. This was a hard decision, and it is not a judgment of your
+        ability. We had many strong candidates for a small number of roles.
+      </p>
+      <p>
+        We would be glad to hear from you again. Please keep an eye on our careers
+        page for roles that fit.
+      </p>
+      <p>With thanks,<br>The {COMPANY} hiring team</p>
+
+      <div class="email-footer">
+        <p>{COMPANY}, Inc.</p>
+      </div>
+    </div>
+  </body>
+</html>

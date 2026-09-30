@@ -1,0 +1,47 @@
+.reject-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  display: grid;
+  place-items: center;
+  padding: var(--space-5);
+  background: color-mix(in oklab, var(--neutral-950) 45%, transparent);
+  animation: reject-fade 140ms ease-out;
+}
+
+.reject-dialog {
+  width: 100%;
+  max-width: 30rem;
+  box-shadow: var(--shadow-lg);
+  animation: reject-rise 180ms ease-out;
+}
+
+.reject-preview {
+  padding: var(--space-4);
+  border-radius: var(--radius-md);
+  background: var(--bg-soft);
+  border: 1px solid var(--rule);
+  font-size: var(--text-sm);
+  color: var(--ink-soft);
+}
+
+.reject-preview p {
+  margin: 0;
+}
+
+.reject-actions {
+  justify-content: flex-end;
+}
+
+@keyframes reject-fade {
+  from {
+    opacity: 0;
+  }
+}
+
+@keyframes reject-rise {
+  from {
+    opacity: 0;
+    transform: translateY(8px) scale(0.98);
+  }
+}

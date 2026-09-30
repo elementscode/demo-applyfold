@@ -1,0 +1,26 @@
+@import "#app/shared/styles/page.css";
+
+.job-edit-head h1 {
+  margin: 0;
+}
+
+.job-edit textarea.is-markdown {
+  min-height: 22rem;
+  font-family: var(--font-mono);
+  font-size: var(--text-sm);
+  line-height: 1.6;
+}
+
+.md-preview {
+  min-height: 22rem;
+  padding: var(--space-4) var(--space-5);
+  border: 1px solid var(--rule);
+  border-radius: var(--radius-md);
+  background: var(--bg-soft);
+}
+
+.job-edit-actions {
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+}

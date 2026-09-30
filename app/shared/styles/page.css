@@ -1,0 +1,12 @@
+@import "@elements/style";
+@import "./vars.css";
+
+/* Phones: back links and header links get a 40px tap area without moving the
+   text around them. */
+@media (max-width: 40rem) {
+  a.link-muted {
+    display: inline-block;
+    padding-block: var(--space-2-5);
+    margin-block: calc(-1 * var(--space-2-5));
+  }
+}

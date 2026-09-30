@@ -1,0 +1,119 @@
+import "./style.css";
+import { raw } from "@elements/app";
+import { marked } from "marked";
+import favicon from "#app/shared/assets/favicons/favicon.svg";
+import { HiringLayout } from "#app/shared/templates/hiring-layout";
+import { User } from "#app/shared/services/auth";
+import { JobForm, TEAMS, saveJob } from "./services";
+
+interface Editor {
+  form: JobForm;
+  errors: Record<string, string>;
+  tab: string;
+  saving: boolean;
+}
+
+function onSubmit(editor: Editor) {
+  editor.saving = true;
+
+  try {
+    saveJob(editor.form);
+  } catch (err: any) {
+    let errors: Record<string, string> = {};
+
+    for (let [field, messages] of Object.entries((err.errors ?? {}) as Record<string, string[]>)) {
+      errors[field] = messages[0];
+    }
+
+    editor.errors = Object.keys(errors).length > 0 ? errors : { form: err.message };
+  } finally {
+    editor.saving = false;
+  }
+}
+
+function preview(markdown: string): string {
+  return marked.parse(markdown || "*Nothing to preview yet.*") as string;
+}
+
+<html lang="en" class="page-job-edit" (
+  user: User,
+  initial: JobForm,
+  private editor: Editor = { form: initial, errors: {}, tab: "write", saving: false },
+)>
+  <head>
+    <title>{initial.id ? `Edit ${initial.title}` : "New job"} · applyfold</title>
+    <link rel="icon" type="image/svg+xml" href={favicon} />
+  </head>
+  <body>
+    <HiringLayout {user} active="home">
+      <div class="page-shell is-form stack is-xl job-edit">
+        <div class="stack is-xs job-edit-head">
+          <a href={initial.id ? `/hiring/jobs/${initial.id}` : "/hiring"} class="link-muted text-sm">← {initial.id ? "Back to board" : "Jobs"}</a>
+          <h1>{initial.id ? "Edit job" : "New job"}</h1>
+        </div>
+
+        <form class="is-grid" onsubmit={() => onSubmit(editor)}>
+          <p class="error field is-full" role="alert" e:if={editor.errors.form}>{editor.errors.form}</p>
+
+          <div class="field is-full">
+            <label for="title">Title</label>
+            <input id="title" value={editor.form.title} class={editor.errors.title && "is-error"} placeholder="Senior Backend Engineer">
+            <p class="error" e:if={editor.errors.title}>{editor.errors.title}</p>
+          </div>
+
+          <div class="field">
+            <label for="team">Team</label>
+            <select id="team" value={editor.form.team}>
+              <option e:for={t of TEAMS} value={t}>{t}</option>
+            </select>
+          </div>
+
+          <div class="field">
+            <label for="location">Location</label>
+            <input id="location" value={editor.form.location} class={editor.errors.location && "is-error"} placeholder="Remote, US or EU">
+            <p class="error" e:if={editor.errors.location}>{editor.errors.location}</p>
+          </div>
+
+          <div class="field is-full">
+            <label for="status">Status</label>
+            <select id="status" value={editor.form.status}>
+              <option value="open">Open: listed on the careers page and accepting applications</option>
+              <option value="closed">Closed: hidden from the careers page</option>
+            </select>
+          </div>
+
+          <div class="field is-full">
+            <label for="question">Application question</label>
+            <input id="question" value={editor.form.question} class={editor.errors.question && "is-error"}>
+            <p class="error" e:if={editor.errors.question}>{editor.errors.question}</p>
+            <p class="hint" e:else>Every applicant answers this in a few sentences.</p>
+          </div>
+
+          <div class="field is-full">
+            <label for="description">Description</label>
+            <div class="tabs">
+              <div class="tab-list">
+                <button type="button" class={["tab", editor.tab === "write" && "is-active"]} onclick={() => editor.tab = "write"}>Write</button>
+                <button type="button" class={["tab", editor.tab === "preview" && "is-active"]} onclick={() => editor.tab = "preview"}>Preview</button>
+              </div>
+              <div class="tab-panel">
+                <textarea e:if={editor.tab === "write"} id="description" class="is-markdown" value={editor.form.description}></textarea>
+                <div e:else class="md-preview prose">{raw(preview(editor.form.description))}</div>
+              </div>
+            </div>
+            <p class="hint">Markdown: ## for headings, - for lists, **bold**.</p>
+          </div>
+
+          <div class="field is-full">
+            <div class="row job-edit-actions">
+              <button type="submit" class={["is-primary", editor.saving && "is-loading"]} disabled={editor.saving}>
+                {initial.id ? "Save changes" : "Create job"}
+              </button>
+              <a href={`/jobs/${initial.id}`} target="_blank" rel="noopener" class="link-muted text-sm" e:if={initial.id}>View public posting</a>
+            </div>
+          </div>
+        </form>
+      </div>
+    </HiringLayout>
+  </body>
+</html>

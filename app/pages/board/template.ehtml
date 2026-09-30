@@ -1,0 +1,261 @@
+import "./style.css";
+import { LiveTable, LiveView, sql, ForbiddenError, ValidationError } from "@elements/app";
+import favicon from "#app/shared/assets/favicons/favicon.svg";
+import { HiringLayout } from "#app/shared/templates/hiring-layout";
+import { RejectPrompt, RejectPromptState, emptyRejectPrompt } from "#app/shared/templates/reject-prompt";
+import { User, adminOrThrow } from "#app/shared/services/auth";
+import { Job } from "#app/shared/services/jobs";
+import { isStage } from "#app/shared/services/candidates";
+import { STAGES, Stage, initials, daysAgo } from "#app/shared/services/hiring";
+
+export interface Card {
+  id: string;
+  jobId: string;
+  name: string;
+  email: string;
+  stage: Stage;
+  createdAt: Date;
+  movedAt: Date;
+  rejectionSentAt: Date | null;
+  scoreCount: number;
+  avgScore: number | null;
+  interviewers: string;
+}
+
+function selectCards(jobId: string, id?: string) {
+  return sql<Card>(`
+    select a.id, a.jobId, a.name, a.email, a.stage::text as stage,
+           a.createdAt, a.movedAt, a.rejectionSentAt,
+           (select count(*)::int from scorecards s where s.applicationId = a.id) as scoreCount,
+           (select round(avg((s.skills + s.communication + s.ownership) / 3.0), 1)::float8
+              from scorecards s where s.applicationId = a.id) as avgScore,
+           coalesce((select string_agg(split_part(u.name, ' ', 1), ', ' order by u.name)
+                       from assignments x join users u on u.id = x.userId
+                      where x.applicationId = a.id), '') as interviewers
+      from applications a
+     where a.jobId = ${jobId}
+       and (${id ?? null}::uuid is null or a.id = ${id ?? null}::uuid)
+  `);
+}
+
+// The applications trigger notifies the table's channel: a new application
+// from the careers page, or a stage change made on a candidate's page, reaches
+// every open board without going through this view.
+export let applications: LiveTable<Card> = new LiveTable<Card>({
+  select: ({ jobId }) => selectCards(jobId!),
+
+  insert: () => {
+    throw new ForbiddenError("Candidates arrive through the careers page.");
+  },
+
+  update: (item) => {
+    adminOrThrow();
+
+    if (!isStage(item.stage)) {
+      throw new ValidationError("Unknown stage.");
+    }
+
+    sql(`
+      update applications
+         set stage = ${item.stage}, movedAt = now()
+       where id = ${item.id} and jobId = ${item.jobId} and stage <> ${item.stage}
+    `);
+
+    return selectCards(item.jobId, item.id).firstOrThrow("candidate not found");
+  },
+
+  delete: () => {
+    throw new ForbiddenError("Move a candidate to rejected instead of deleting them.");
+  },
+});
+
+interface DragState {
+  id: string;
+  over: string;
+}
+
+function columnCards(cards: LiveView<Card>, stage: Stage): Card[] {
+  return cards.filter((c) => c.stage === stage).sort((a, b) => +new Date(b.movedAt) - +new Date(a.movedAt));
+}
+
+function isNew(card: Card): boolean {
+  return Date.now() - +new Date(card.createdAt) < 60_000;
+}
+
+function onDragStart(e: DragEvent, drag: DragState, card: Card) {
+  drag.id = card.id;
+
+  if (e.dataTransfer) {
+    e.dataTransfer.setData("text/plain", card.id);
+    e.dataTransfer.effectAllowed = "move";
+  }
+}
+
+function onDragEnd(drag: DragState) {
+  drag.id = "";
+  drag.over = "";
+}
+
+function onDragOver(e: DragEvent, drag: DragState, stage: Stage) {
+  if (!drag.id) {
+    return;
+  }
+
+  e.preventDefault();
+
+  if (e.dataTransfer) {
+    e.dataTransfer.dropEffect = "move";
+  }
+
+  drag.over = stage;
+}
+
+function onDragLeave(e: DragEvent, drag: DragState, stage: Stage) {
+  let column = e.currentTarget as Element;
+
+  if (drag.over === stage && !column.contains(e.relatedTarget as Node | null)) {
+    drag.over = "";
+  }
+}
+
+function onDrop(e: DragEvent, drag: DragState, stage: Stage, cards: LiveView<Card>, prompt: RejectPromptState, job: Job) {
+  e.preventDefault();
+
+  let card = cards.get(drag.id);
+  drag.id = "";
+  drag.over = "";
+
+  if (card) {
+    moveCard(card, stage, cards, prompt, job);
+  }
+}
+
+// The touch path: a phone moves a card with its select instead of a drag.
+function onMoveSelect(e: Event, card: Card, cards: LiveView<Card>, prompt: RejectPromptState, job: Job) {
+  let stage = (e.target as HTMLSelectElement).value;
+
+  if (isStage(stage)) {
+    moveCard(card, stage, cards, prompt, job);
+  }
+}
+
+function moveCard(card: Card, stage: Stage, cards: LiveView<Card>, prompt: RejectPromptState, job: Job) {
+  if (card.stage === stage) {
+    return;
+  }
+
+  if (stage === "rejected" && !card.rejectionSentAt) {
+    prompt.applicationId = card.id;
+    prompt.name = card.name;
+    prompt.email = card.email;
+    prompt.jobTitle = job.title;
+    prompt.error = "";
+  }
+
+  cards.update({ ...card, stage, movedAt: new Date() });
+}
+
+function onRejectionSent(cards: LiveView<Card>, prompt: RejectPromptState, at: Date) {
+  let card = cards.get(prompt.applicationId);
+
+  if (card) {
+    card.rejectionSentAt = at;
+  }
+}
+
+<html lang="en" class="page-board" (
+  user: User,
+  job: Job,
+  cards: LiveView<Card>,
+  private drag: DragState = { id: "", over: "" },
+  private prompt: RejectPromptState = emptyRejectPrompt(),
+  private shown: Stage = "applied",
+)>
+  <head>
+    <title>{job.title} pipeline · applyfold</title>
+    <link rel="icon" type="image/svg+xml" href={favicon} />
+  </head>
+  <body>
+    <HiringLayout {user} active="home" wide={true}>
+      <div class="page-shell is-full stack is-lg">
+        <div class="row board-head">
+          <div class="stack is-xs">
+            <a href="/hiring" class="link-muted text-sm">← Jobs</a>
+            <h1>{job.title}</h1>
+            <div class="cluster is-sm board-sub">
+              <span>{job.team} · {job.location}</span>
+              <span class={["pill", job.status === "open" ? "is-success" : ""]}>{job.status === "open" ? "Open" : "Closed"}</span>
+              <span class="row live-dot">Live</span>
+            </div>
+          </div>
+          <div class="cluster is-sm">
+            <a href={`/jobs/${job.id}`} class="button is-ghost is-sm" target="_blank" rel="noopener">View posting</a>
+            <a href={`/hiring/jobs/${job.id}/edit`} class="button is-sm">Edit job</a>
+          </div>
+        </div>
+
+        <p class="hint">{cards.length} candidates.<span class="board-hint-drag"> Drag a card to move it between stages.</span><span class="board-hint-touch"> Pick a stage above, and move a candidate with the menu under their card.</span></p>
+
+        <div class="tab-list board-switcher" role="tablist" aria-label="Stages">
+          <button e:for={stage of STAGES}
+                  role="tab"
+                  class={["tab", shown === stage.id && "is-active"]}
+                  aria-selected={shown === stage.id}
+                  onclick={() => shown = stage.id}>
+            {stage.label} <span class="board-count">{columnCards(cards, stage.id).length}</span>
+          </button>
+        </div>
+
+        <div class="board">
+          <section e:for={stage of STAGES}
+                   class={["board-column", drag.over === stage.id && "is-over", shown === stage.id && "is-current"]}
+                   aria-label={stage.label}
+                   ondragover={(e) => onDragOver(e, drag, stage.id)}
+                   ondragleave={(e) => onDragLeave(e, drag, stage.id)}
+                   ondrop={(e) => onDrop(e, drag, stage.id, cards, prompt, job)}>
+            <header class="board-column-head">
+              <span class="board-column-title">{stage.label}</span>
+              <span class="board-count">{columnCards(cards, stage.id).length}</span>
+            </header>
+
+            <div class="board-cards">
+              <div e:for={card of columnCards(cards, stage.id)}>
+                <a href={`/hiring/candidates/${card.id}`}
+                   class={["board-card", drag.id === card.id && "is-dragging", isNew(card) && "is-new"]}
+                   draggable="true"
+                   ondragstart={(e) => onDragStart(e, drag, card)}
+                   ondragend={() => onDragEnd(drag)}>
+                  <div class="card-top">
+                    <span class="card-avatar" aria-hidden="true">{initials(card.name)}</span>
+                    <span class="card-name">{card.name}</span>
+                  </div>
+                  <div class="cluster card-meta">
+                    <span>Applied {daysAgo(card.createdAt)}</span>
+                    <span class="pill is-accent" e:if={isNew(card)}>New</span>
+                    <span class="pill" e:if={card.scoreCount > 0} title="Average scorecard rating out of 4">
+                      ★ {card.avgScore?.toFixed(1)} · {card.scoreCount}
+                    </span>
+                    <span class="pill" e:if={card.rejectionSentAt}>Rejection sent</span>
+                  </div>
+                  <div class="card-people" e:if={card.interviewers}>Interviewers: {card.interviewers}</div>
+                </a>
+
+                <select class="board-card-move is-sm"
+                        aria-label={`Move ${card.name} to a stage`}
+                        onchange={(e) => onMoveSelect(e, card, cards, prompt, job)}>
+                  <option e:for={s of STAGES} value={s.id} selected={s.id === card.stage}>
+                    {s.id === card.stage ? `In ${s.label}` : `Move to ${s.label}`}
+                  </option>
+                </select>
+              </div>
+
+              <div class="board-empty" e:if={columnCards(cards, stage.id).length === 0}>Drop here</div>
+            </div>
+          </section>
+        </div>
+      </div>
+
+      <RejectPrompt {prompt} onSent={(at) => onRejectionSent(cards, prompt, at)} />
+    </HiringLayout>
+  </body>
+</html>

@@ -1,0 +1,327 @@
+import "./style.css";
+import favicon from "#app/shared/assets/favicons/favicon.svg";
+import { HiringLayout } from "#app/shared/templates/hiring-layout";
+import { RejectPrompt, RejectPromptState, emptyRejectPrompt } from "#app/shared/templates/reject-prompt";
+import { User } from "#app/shared/services/auth";
+import { setStage } from "#app/shared/services/candidates";
+import {
+  STAGES, CRITERIA, RECOMMENDATIONS, Stage, Criterion, Recommendation,
+  stageInfo, recommendationInfo, initials, shortDate, daysAgo,
+} from "#app/shared/services/hiring";
+import {
+  Candidate, Note, Scorecard, Person, ScorecardForm,
+  addNote, saveScorecard, assign, unassign,
+} from "./services";
+
+interface PageState {
+  stage: string;
+  stageError: string;
+  rejectionSentAt: Date | null;
+  notes: Note[];
+  noteDraft: string;
+  noteError: string;
+  scorecards: Scorecard[];
+  form: ScorecardForm;
+  scoreError: string;
+  scoreSaved: boolean;
+  assignees: Person[];
+  assignPick: string;
+}
+
+function initialState(user: User, candidate: Candidate, notes: Note[], scorecards: Scorecard[], assignees: Person[]): PageState {
+  let mine = scorecards.find((s) => s.interviewerId === user.id);
+
+  return {
+    stage: candidate.stage,
+    stageError: "",
+    rejectionSentAt: candidate.rejectionSentAt,
+    notes,
+    noteDraft: "",
+    noteError: "",
+    scorecards,
+    form: {
+      applicationId: candidate.id,
+      skills: mine?.skills ?? 0,
+      communication: mine?.communication ?? 0,
+      ownership: mine?.ownership ?? 0,
+      recommendation: mine?.recommendation ?? "",
+      comments: mine?.comments ?? "",
+    },
+    scoreError: "",
+    scoreSaved: false,
+    assignees,
+    assignPick: "",
+  };
+}
+
+function onStageChange(e: Event, state: PageState, candidate: Candidate, prompt: RejectPromptState) {
+  let stage = (e.target as HTMLSelectElement).value as Stage;
+  let previous = state.stage;
+  state.stage = stage;
+
+  try {
+    setStage(candidate.id, stage);
+    state.stageError = "";
+
+    if (stage === "rejected" && !state.rejectionSentAt) {
+      prompt.applicationId = candidate.id;
+      prompt.name = candidate.name;
+      prompt.email = candidate.email;
+      prompt.jobTitle = candidate.jobTitle;
+      prompt.error = "";
+    }
+  } catch (err: any) {
+    state.stage = previous;
+    state.stageError = err.message;
+  }
+}
+
+function onNoteSubmit(state: PageState, candidate: Candidate) {
+  try {
+    state.notes = addNote(candidate.id, state.noteDraft);
+    state.noteDraft = "";
+    state.noteError = "";
+  } catch (err: any) {
+    state.noteError = err.message;
+  }
+}
+
+function onScoreSubmit(state: PageState) {
+  try {
+    state.scorecards = saveScorecard(state.form);
+    state.scoreError = "";
+    state.scoreSaved = true;
+  } catch (err: any) {
+    state.scoreError = err.message;
+    state.scoreSaved = false;
+  }
+}
+
+function onRate(state: PageState, criterion: Criterion, score: number) {
+  state.form[criterion] = score;
+  state.scoreSaved = false;
+}
+
+function onRecommend(state: PageState, recommendation: Recommendation) {
+  state.form.recommendation = recommendation;
+  state.scoreSaved = false;
+}
+
+function onAssign(state: PageState, candidate: Candidate) {
+  if (state.assignPick) {
+    state.assignees = assign(candidate.id, state.assignPick);
+    state.assignPick = "";
+  }
+}
+
+function onUnassign(state: PageState, candidate: Candidate, person: Person) {
+  state.assignees = unassign(candidate.id, person.id);
+}
+
+function average(s: Scorecard): string {
+  return ((s.skills + s.communication + s.ownership) / 3).toFixed(1);
+}
+
+function kb(size: number): string {
+  return size < 1024 * 1024 ? `${Math.max(1, Math.round(size / 1024))} KB` : `${(size / 1024 / 1024).toFixed(1)} MB`;
+}
+
+<ScoreBar (score: number)>
+  <span class="score-bar" aria-hidden="true">
+    <span e:for={n of [1, 2, 3, 4]} class={[n <= score && "is-on"]}></span>
+  </span>
+</ScoreBar>
+
+<html lang="en" class="page-candidate" (
+  user: User,
+  candidate: Candidate,
+  notes: Note[],
+  scorecards: Scorecard[],
+  assignees: Person[],
+  people: Person[],
+  private state: PageState = initialState(user, candidate, notes, scorecards, assignees),
+  private prompt: RejectPromptState = emptyRejectPrompt(),
+)>
+  <head>
+    <title>{candidate.name} · applyfold</title>
+    <link rel="icon" type="image/svg+xml" href={favicon} />
+  </head>
+  <body>
+    <HiringLayout {user} active="home">
+      <div class="page-shell stack is-xl">
+        <div class="stack is-md">
+          <a e:if={user.role === "admin"} href={`/hiring/jobs/${candidate.jobId}`} class="link-muted text-sm">← {candidate.jobTitle} board</a>
+          <a e:else href="/hiring" class="link-muted text-sm">← My candidates</a>
+
+          <div class="row cand-head">
+            <div class="row gap-4">
+              <span class="cand-avatar" aria-hidden="true">{initials(candidate.name)}</span>
+              <div class="stack is-xs">
+                <h1>{candidate.name}</h1>
+                <p class="cand-sub">{candidate.jobTitle} · applied {shortDate(candidate.createdAt)} ({daysAgo(candidate.createdAt)})</p>
+              </div>
+            </div>
+
+            <div class="stack is-xs" e:if={user.role === "admin"}>
+              <div class="row stage-control">
+                <label for="stage" class="text-sm">Stage</label>
+                <select id="stage" value={state.stage} onchange={(e) => onStageChange(e, state, candidate, prompt)}>
+                  <option e:for={s of STAGES} value={s.id}>{s.label}</option>
+                </select>
+              </div>
+              <p class="error text-sm" e:if={state.stageError}>{state.stageError}</p>
+              <p class="hint" e:if={state.stage === "rejected" && state.rejectionSentAt}>Rejection email sent {shortDate(state.rejectionSentAt!)}</p>
+              <button class="is-sm is-ghost" e:if={state.stage === "rejected" && !state.rejectionSentAt}
+                      onclick={() => prompt.applicationId = candidate.id}>Send rejection email</button>
+            </div>
+            <span e:else class={["pill", stageInfo(state.stage).intent]}>{stageInfo(state.stage).label}</span>
+          </div>
+        </div>
+
+        <div class="cand-layout">
+          <div class="stack is-lg">
+            <section class="card">
+              <div class="card-head card-head-row"><h2>Application</h2></div>
+              <div class="card-body stack is-lg">
+                <dl class="contact-list">
+                  <dt>Email</dt>
+                  <dd><a href={`mailto:${candidate.email}`}>{candidate.email}</a></dd>
+                  <dt>Phone</dt>
+                  <dd><a href={`tel:${candidate.phone.replace(/[^\d+]/g, "")}`}>{candidate.phone}</a></dd>
+                </dl>
+                <div class="stack is-sm">
+                  <p class="answer-question">{candidate.question}</p>
+                  <p class="answer-body">{candidate.answer}</p>
+                </div>
+              </div>
+            </section>
+
+            <section class="card">
+              <div class="card-head card-head-row">
+                <h2>Resume</h2>
+                <a class="button is-sm is-ghost" href={`/hiring/candidates/${candidate.id}/resume`} target="_blank" rel="noopener">
+                  Open PDF · {kb(candidate.resumeSize)}
+                </a>
+              </div>
+              <iframe class="resume-frame" src={`/hiring/candidates/${candidate.id}/resume#view=FitH&toolbar=0`} title={`Resume of ${candidate.name}`}></iframe>
+            </section>
+          </div>
+
+          <div class="stack is-lg">
+            <section class="card" e:if={user.role === "admin"}>
+              <div class="card-head card-head-row"><h2>Interviewers</h2></div>
+              <div class="card-body stack is-md">
+                <div class="people" e:if={state.assignees.length > 0}>
+                  <span class="person-chip" e:for={p of state.assignees}>
+                    {p.name}
+                    <button class="is-ghost is-sm" aria-label={`Remove ${p.name}`} onclick={() => onUnassign(state, candidate, p)}>×</button>
+                  </span>
+                </div>
+                <p class="empty-line" e:else>No one assigned. Interviewers only see candidates assigned to them.</p>
+
+                <form class="row gap-2 assign-form" onsubmit={() => onAssign(state, candidate)}>
+                  <select value={state.assignPick} aria-label="Interviewer to assign" class="is-sm">
+                    <option value="">Assign someone…</option>
+                    <option e:for={p of people.filter((p) => !state.assignees.some((a) => a.id === p.id))} value={p.id}>{p.name}</option>
+                  </select>
+                  <button type="submit" class="is-sm" disabled={!state.assignPick}>Assign</button>
+                </form>
+              </div>
+            </section>
+
+            <section class="card">
+              <div class="card-head card-head-row">
+                <h2>Scorecards</h2>
+                <span class="pill" e:if={state.scorecards.length > 0}>{state.scorecards.length}</span>
+              </div>
+              <div class="card-body">
+                <div class="scorecard" e:for={s of state.scorecards}>
+                  <div class="scorecard-head">
+                    <span class="scorecard-name">{s.interviewerId === user.id ? "You" : s.interviewerName}</span>
+                    <span class={["pill", recommendationInfo(s.recommendation).intent]}>{recommendationInfo(s.recommendation).label}</span>
+                  </div>
+                  <div class="score-rows">
+                    <div class="score-row" e:for={c of CRITERIA}>
+                      <span class="score-row-label">{c.label}</span>
+                      <ScoreBar score={s[c.id]} />
+                      <span class="score-num">{s[c.id]}</span>
+                    </div>
+                  </div>
+                  <p class="scorecard-comments" e:if={s.comments}>{s.comments}</p>
+                  <p class="note-meta">Average {average(s)} · {shortDate(s.updatedAt)}</p>
+                </div>
+                <p class="empty-line" e:if={state.scorecards.length === 0}>No scorecards yet.</p>
+              </div>
+            </section>
+
+            <section class="card" id="scorecard">
+              <div class="card-head card-head-row">
+                <h2>{state.scorecards.some((s) => s.interviewerId === user.id) ? "Your scorecard" : "Add your scorecard"}</h2>
+              </div>
+              <div class="card-body">
+                <form class="stack is-lg" onsubmit={() => onScoreSubmit(state)}>
+                  <div class="rate-field" e:for={c of CRITERIA} role="group" aria-label={c.label}>
+                    <div class="rate-label">
+                      <strong>{c.label}</strong>
+                      <span class="rate-hint">{c.hint}</span>
+                    </div>
+                    <div class="segmented">
+                      <button type="button" e:for={n of [1, 2, 3, 4]}
+                              class={["is-sm", state.form[c.id] === n && "is-active"]}
+                              aria-pressed={state.form[c.id] === n}
+                              onclick={() => onRate(state, c.id, n)}>{n}</button>
+                    </div>
+                  </div>
+
+                  <div class="rate-field" role="group" aria-label="Recommendation">
+                    <div class="rate-label"><strong>Recommendation</strong></div>
+                    <div class="segmented is-rec">
+                      <button type="button" e:for={r of RECOMMENDATIONS}
+                              class={["is-sm", state.form.recommendation === r.id && "is-active"]}
+                              aria-pressed={state.form.recommendation === r.id}
+                              onclick={() => onRecommend(state, r.id)}>{r.label}</button>
+                    </div>
+                  </div>
+
+                  <div class="field">
+                    <label for="score-comments">Notes for the team</label>
+                    <textarea id="score-comments" rows={3} value={state.form.comments}
+                              placeholder="What stood out, and what would you probe next?"></textarea>
+                  </div>
+
+                  <p class="error" role="alert" e:if={state.scoreError}>{state.scoreError}</p>
+
+                  <div class="row gap-3">
+                    <button type="submit" class="is-primary">Save scorecard</button>
+                    <span class="hint" e:if={state.scoreSaved}>Saved</span>
+                  </div>
+                </form>
+              </div>
+            </section>
+
+            <section class="card">
+              <div class="card-head card-head-row"><h2>Notes</h2></div>
+              <div class="card-body stack is-md">
+                <form class="stack is-sm" onsubmit={() => onNoteSubmit(state, candidate)}>
+                  <textarea rows={3} value={state.noteDraft} aria-label="New note" placeholder="Add a note for the hiring team"></textarea>
+                  <p class="error" e:if={state.noteError}>{state.noteError}</p>
+                  <div><button type="submit" class="is-sm" disabled={!state.noteDraft.trim()}>Add note</button></div>
+                </form>
+
+                <div>
+                  <div class="note" e:for={n of state.notes}>
+                    <div class="note-meta">{n.authorName} · {shortDate(n.createdAt)}</div>
+                    <p class="note-body">{n.body}</p>
+                  </div>
+                  <p class="empty-line" e:if={state.notes.length === 0}>No notes yet.</p>
+                </div>
+              </div>
+            </section>
+          </div>
+        </div>
+      </div>
+
+      <RejectPrompt {prompt} onSent={(at) => state.rejectionSentAt = at} />
+    </HiringLayout>
+  </body>
+</html>

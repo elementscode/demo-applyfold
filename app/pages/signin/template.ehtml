@@ -1,0 +1,103 @@
+import "./style.css";
+import { redirect } from "@elements/app";
+import favicon from "#app/shared/assets/favicons/favicon.svg";
+import { signin } from "#app/shared/services/auth";
+import { COMPANY } from "#app/shared/services/hiring";
+
+interface SigninForm {
+  email: string;
+  password: string;
+  error: string;
+}
+
+interface DemoLogin {
+  id: string;
+  name: string;
+  email: string;
+  role: string;
+}
+
+// The accounts the demo seed creates. They share one password.
+const DEMO_PASSWORD = "applyfold";
+
+const DEMO_LOGINS: DemoLogin[] = [
+  { id: "admin", name: "Maya Okafor", email: "admin@wrenbolt.test", role: "Admin" },
+  { id: "jonas", name: "Jonas Lindqvist", email: "jonas@wrenbolt.test", role: "Interviewer" },
+  { id: "priya", name: "Priya Raman", email: "priya@wrenbolt.test", role: "Interviewer" },
+];
+
+function onSubmit(form: SigninForm) {
+  try {
+    signin(form.email, form.password);
+    form.error = "";
+    redirect("/hiring");
+  } catch (err: any) {
+    form.error = err.message;
+  }
+}
+
+function onPick(form: SigninForm, login: DemoLogin) {
+  form.email = login.email;
+  form.password = DEMO_PASSWORD;
+  onSubmit(form);
+}
+
+<html lang="en" class="page-signin" (
+  private form: SigninForm = { email: "", password: "", error: "" },
+)>
+  <head>
+    <title>Sign in · applyfold</title>
+    <link rel="icon" type="image/svg+xml" href={favicon} />
+  </head>
+  <body>
+    <div class="app">
+      <main class="app-main center signin-main">
+        <div class="signin-wrap stack is-xl">
+          <a href="/" class="signin-brand row link-muted">
+            <span class="signin-mark" aria-hidden="true">{COMPANY[0]}</span>
+            {COMPANY} hiring
+          </a>
+
+          <div class="card">
+            <div class="card-body">
+              <form class="stack" onsubmit={() => onSubmit(form)}>
+                <h1 class="text-2xl">Sign in</h1>
+
+                <p e:if={form.error} class="error" role="alert">{form.error}</p>
+
+                <div class="field">
+                  <label for="email">Email</label>
+                  <input id="email" name="email" type="email" value={form.email}
+                         autocomplete="email" autocapitalize="none" spellcheck={false}
+                         placeholder="you@wrenbolt.test" required>
+                </div>
+
+                <div class="field">
+                  <label for="password">Password</label>
+                  <input id="password" name="password" type="password" value={form.password}
+                         autocomplete="current-password" required>
+                </div>
+
+                <button type="submit" class="is-primary is-block">Sign in</button>
+              </form>
+            </div>
+          </div>
+
+          <section class="stack is-sm">
+            <h2 class="text-sm">Demo logins</h2>
+            <p class="hint">Every account uses the password <code>{DEMO_PASSWORD}</code>. Pick one to sign in.</p>
+            <div class="demo-logins">
+              <button type="button" class="demo-login" e:for={login of DEMO_LOGINS} onclick={() => onPick(form, login)}>
+                <span class="stack is-xs">
+                  <span class="demo-login-name">{login.name}</span>
+                  <span class="demo-login-email">{login.email}</span>
+                </span>
+                <span class={["pill", login.role === "Admin" && "is-accent"]}>{login.role}</span>
+              </button>
+            </div>
+          </section>
+        </div>
+      </main>
+    </div>
+  </body>
+</html>

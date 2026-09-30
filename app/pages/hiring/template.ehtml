@@ -1,0 +1,120 @@
+import "./style.css";
+import favicon from "#app/shared/assets/favicons/favicon.svg";
+import { HiringLayout } from "#app/shared/templates/hiring-layout";
+import { User } from "#app/shared/services/auth";
+import { stageInfo, initials, daysAgo } from "#app/shared/services/hiring";
+
+export interface JobSummary {
+  id: string;
+  title: string;
+  team: string;
+  location: string;
+  status: "open" | "closed";
+  total: number;
+  applied: number;
+  screen: number;
+  interview: number;
+  offer: number;
+  hired: number;
+}
+
+export interface AssignedCandidate {
+  id: string;
+  name: string;
+  stage: string;
+  jobTitle: string;
+  createdAt: Date;
+  scored: boolean;
+}
+
+const COUNT_COLUMNS: { key: "applied" | "screen" | "interview" | "offer" | "hired"; label: string }[] = [
+  { key: "applied", label: "Applied" },
+  { key: "screen", label: "Screen" },
+  { key: "interview", label: "Interview" },
+  { key: "offer", label: "Offer" },
+  { key: "hired", label: "Hired" },
+];
+
+<html lang="en" class="page-hiring" (user: User, jobs: JobSummary[], assigned: AssignedCandidate[])>
+  <head>
+    <title>{user.role === "admin" ? "Jobs" : "My candidates"} · applyfold</title>
+    <link rel="icon" type="image/svg+xml" href={favicon} />
+  </head>
+  <body>
+    <HiringLayout {user} active="home">
+      <div class="page-shell stack is-xl" e:if={user.role === "admin"}>
+        <div class="row hiring-head">
+          <div class="stack is-xs">
+            <h1>Jobs</h1>
+            <p class="job-sub">{jobs.filter((j) => j.status === "open").length} open, {jobs.filter((j) => j.status === "closed").length} closed</p>
+          </div>
+          <a href="/hiring/jobs/new" class="button is-primary">New job</a>
+        </div>
+
+        <div class="card jobs-table-wrap">
+          <table class="jobs-table">
+            <thead>
+              <tr>
+                <th>Role</th>
+                <th>Status</th>
+                <th class="num" e:for={col of COUNT_COLUMNS}>{col.label}</th>
+                <th class="num">Total</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr e:for={job of jobs}>
+                <td class="job-title-cell">
+                  <a class="job-title-link" href={`/hiring/jobs/${job.id}`}>{job.title}</a>
+                  <div class="job-sub">{job.team} · {job.location}</div>
+                </td>
+                <td class="job-status">
+                  <span class={["pill", job.status === "open" ? "is-success" : ""]}>
+                    <span class="pill-dot"></span>
+                    {job.status === "open" ? "Open" : "Closed"}
+                  </span>
+                </td>
+                <td e:for={col of COUNT_COLUMNS} class={["num", job[col.key] === 0 && "is-zero"]} data-label={col.label}>{job[col.key]}</td>
+                <td class="num" data-label="Total"><strong>{job.total}</strong></td>
+                <td class="job-actions">
+                  <div class="row gap-2">
+                    <a href={`/hiring/jobs/${job.id}`} class="button is-sm">Board</a>
+                    <a href={`/hiring/jobs/${job.id}/edit`} class="button is-sm is-ghost">Edit</a>
+                  </div>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="page-shell is-form stack is-xl" e:else>
+        <div class="stack is-xs">
+          <h1>My candidates</h1>
+          <p class="job-sub">
+            {assigned.filter((c) => !c.scored).length} waiting on your scorecard
+          </p>
+        </div>
+
+        <div class="candidate-list">
+          <a class="candidate-item" e:for={c of assigned} href={`/hiring/candidates/${c.id}`}>
+            <span class="candidate-avatar" aria-hidden="true">{initials(c.name)}</span>
+            <span class="candidate-item-main stack is-xs">
+              <span class="candidate-item-name">{c.name}</span>
+              <span class="candidate-item-job">{c.jobTitle} · applied {daysAgo(c.createdAt)}</span>
+            </span>
+            <span class="cluster is-sm candidate-item-pills">
+              <span class={["pill", stageInfo(c.stage).intent]}>{stageInfo(c.stage).label}</span>
+              <span class="pill is-success" e:if={c.scored}>Scored</span>
+              <span class="pill is-warning" e:else><span class="pill-dot"></span>Scorecard due</span>
+            </span>
+          </a>
+        </div>
+
+        <div class="callout" e:if={assigned.length === 0}>
+          <p>No candidates are assigned to you yet. An admin assigns interviewers from a candidate's page.</p>
+        </div>
+      </div>
+    </HiringLayout>
+  </body>
+</html>

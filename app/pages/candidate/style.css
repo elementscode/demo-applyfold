@@ -1,0 +1,264 @@
+@import "#app/shared/styles/page.css";
+
+.cand-head {
+  justify-content: space-between;
+  align-items: end;
+  gap: var(--space-4);
+  flex-wrap: wrap;
+}
+
+.cand-head h1 {
+  margin: 0;
+  font-size: var(--text-3xl);
+}
+
+.cand-avatar {
+  display: inline-grid;
+  place-items: center;
+  flex: none;
+  width: 3.5rem;
+  height: 3.5rem;
+  border-radius: 50%;
+  background: var(--accent-soft);
+  color: var(--accent-deep);
+  font-weight: var(--weight-semibold);
+}
+
+.cand-sub {
+  color: var(--ink-dim);
+  font-size: var(--text-sm);
+}
+
+.stage-control {
+  gap: var(--space-2);
+}
+
+.stage-control select {
+  width: auto;
+  min-width: 10rem;
+}
+
+.cand-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 24rem;
+  gap: var(--space-6);
+  align-items: start;
+}
+
+.contact-list {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: var(--space-2) var(--space-6);
+  margin: 0;
+  font-size: var(--text-sm);
+}
+
+.contact-list dt {
+  color: var(--ink-dim);
+}
+
+.contact-list dd {
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+.answer-question {
+  font-weight: var(--weight-medium);
+}
+
+.answer-body {
+  margin: 0;
+  white-space: pre-wrap;
+  color: var(--ink-soft);
+}
+
+.resume-frame {
+  display: block;
+  width: 100%;
+  aspect-ratio: 612 / 792;
+  border: 0;
+  border-top: 1px solid var(--rule);
+  border-radius: 0 0 var(--radius-lg) var(--radius-lg);
+  background: var(--bg-muted);
+}
+
+.card-head-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+}
+
+.card-head-row h2 {
+  margin: 0;
+  font-size: var(--text-md);
+}
+
+.people {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+
+.person-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  padding: var(--space-1) var(--space-1) var(--space-1) var(--space-3);
+  border: 1px solid var(--rule);
+  border-radius: 999px;
+  font-size: var(--text-sm);
+}
+
+.person-chip button {
+  width: 1.5rem;
+  height: 1.5rem;
+  padding: 0;
+  border-radius: 50%;
+  line-height: 1;
+}
+
+.assign-form select {
+  flex: 1;
+  min-width: 0;
+}
+
+.scorecard {
+  padding-block: var(--space-4);
+  border-top: 1px solid var(--rule);
+}
+
+.scorecard:first-child {
+  padding-top: 0;
+  border-top: 0;
+}
+
+.scorecard-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.scorecard-name {
+  font-weight: var(--weight-medium);
+}
+
+.score-rows {
+  display: grid;
+  gap: var(--space-1);
+  margin-block: var(--space-3);
+}
+
+.score-row {
+  display: grid;
+  grid-template-columns: 7.5rem 1fr auto;
+  align-items: center;
+  gap: var(--space-3);
+  font-size: var(--text-sm);
+}
+
+.score-row-label {
+  color: var(--ink-soft);
+}
+
+.score-bar {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 3px;
+}
+
+.score-bar span {
+  height: 6px;
+  border-radius: 3px;
+  background: var(--bg-muted);
+}
+
+.score-bar span.is-on {
+  background: var(--accent);
+}
+
+.score-num {
+  font-variant-numeric: tabular-nums;
+  font-weight: var(--weight-medium);
+  width: 1.5rem;
+  text-align: right;
+}
+
+.scorecard-comments {
+  margin: 0;
+  font-size: var(--text-sm);
+  color: var(--ink-soft);
+  white-space: pre-wrap;
+}
+
+.rate-field {
+  display: grid;
+  gap: var(--space-2);
+}
+
+.rate-label {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--space-2);
+  font-size: var(--text-sm);
+}
+
+.rate-label strong {
+  font-weight: var(--weight-medium);
+}
+
+.rate-hint {
+  color: var(--ink-dim);
+  font-size: var(--text-xs);
+}
+
+.segmented {
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: 1fr;
+  gap: var(--space-1);
+}
+
+.segmented button {
+  min-width: 0;
+  padding-inline: var(--space-1);
+}
+
+.segmented button.is-active {
+  border-color: var(--accent);
+  background: var(--accent);
+  color: var(--accent-ink);
+}
+
+.segmented.is-rec button {
+  font-size: var(--text-xs);
+}
+
+.note {
+  padding-block: var(--space-3);
+  border-top: 1px solid var(--rule);
+}
+
+.note-meta {
+  color: var(--ink-dim);
+  font-size: var(--text-xs);
+}
+
+.note-body {
+  margin: var(--space-1) 0 0;
+  white-space: pre-wrap;
+  font-size: var(--text-sm);
+}
+
+.empty-line {
+  color: var(--ink-dim);
+  font-size: var(--text-sm);
+  margin: 0;
+}
+
+@media (max-width: 60rem) {
+  .cand-layout {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
