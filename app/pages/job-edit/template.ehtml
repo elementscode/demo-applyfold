@@ -1,146 +1,119 @@
 import "./style.css";
+import { raw } from "@elements/app";
+import { marked } from "marked";
 import favicon from "#app/shared/assets/favicons/favicon.svg";
-import { raw, redirect, ValidationError } from "@elements/app";
-import { StaffLayout } from "#app/shared/templates/staff-layout";
-import { StaffUser } from "#app/shared/services/auth";
-import { saveJob, JobInput } from "#app/shared/services/jobs";
-import { renderMarkdown } from "#app/shared/services/markdown";
+import { HiringLayout } from "#app/shared/templates/hiring-layout";
+import { User } from "#app/shared/services/auth";
+import { JobForm, TEAMS, saveJob } from "./services";
 
-interface EditState {
-  errors: Record<string, string[]>;
-  error: string;
+interface Editor {
+  form: JobForm;
+  errors: Record<string, string>;
+  tab: string;
   saving: boolean;
 }
 
-function onSave(jobId: string | null, input: JobInput, state: EditState) {
-  state.saving = true;
-  state.error = "";
+function onSubmit(editor: Editor) {
+  editor.saving = true;
 
   try {
-    let job = saveJob(jobId, input);
-    state.errors = {};
-    redirect(`/hiring/jobs/${job.id}`);
+    saveJob(editor.form);
   } catch (err: any) {
-    if (err instanceof ValidationError && err.errors) {
-      state.errors = err.errors as Record<string, string[]>;
-    } else {
-      state.error = err.message;
+    let errors: Record<string, string> = {};
+
+    for (let [field, messages] of Object.entries((err.errors ?? {}) as Record<string, string[]>)) {
+      errors[field] = messages[0];
     }
 
-    state.saving = false;
+    editor.errors = Object.keys(errors).length > 0 ? errors : { form: err.message };
+  } finally {
+    editor.saving = false;
   }
 }
 
-function fieldError(state: EditState, field: string): string {
-  return state.errors[field]?.[0] ?? "";
+function preview(markdown: string): string {
+  return marked.parse(markdown || "*Nothing to preview yet.*") as string;
 }
 
 <html lang="en" class="page-job-edit" (
-  user: StaffUser,
-  jobId: string | null,
-  job: JobInput,
-  private input: JobInput = { ...job },
-  private state: EditState = { errors: {}, error: "", saving: false },
+  user: User,
+  initial: JobForm,
+  private editor: Editor = { form: initial, errors: {}, tab: "write", saving: false },
 )>
   <head>
-    <title>{jobId ? "Edit job" : "New job"} · applyfold hiring</title>
+    <title>{initial.id ? `Edit ${initial.title}` : "New job"} · applyfold</title>
     <link rel="icon" type="image/svg+xml" href={favicon} />
   </head>
   <body>
-    <StaffLayout {user} active="dashboard">
-      <form class="stack is-lg" onsubmit={() => onSave(jobId, input, state)} novalidate>
-        <div class="edit-head row">
-          <div class="stack is-xs">
-            <a class="edit-crumb" href={jobId ? `/hiring/jobs/${jobId}` : "/hiring"}>
-              ← {jobId ? "Back to the board" : "Dashboard"}
-            </a>
-            <h1>{jobId ? `Edit ${input.title || "job"}` : "New job"}</h1>
-          </div>
-          <div class="cluster is-sm">
-            <a class="button" href={jobId ? `/hiring/jobs/${jobId}` : "/hiring"}>Cancel</a>
-            <button type="submit" class="is-primary" disabled={state.saving}>
-              {state.saving ? "Saving…" : jobId ? "Save changes" : "Create job"}
-            </button>
-          </div>
+    <HiringLayout {user} active="home">
+      <div class="page-shell is-form stack is-xl job-edit">
+        <div class="stack is-xs job-edit-head">
+          <a href={initial.id ? `/hiring/jobs/${initial.id}` : "/hiring"} class="link-muted text-sm">← {initial.id ? "Back to board" : "Jobs"}</a>
+          <h1>{initial.id ? "Edit job" : "New job"}</h1>
         </div>
 
-        <p e:if={state.error} class="error" role="alert">{state.error}</p>
+        <form class="is-grid" onsubmit={() => onSubmit(editor)}>
+          <p class="error field is-full" role="alert" e:if={editor.errors.form}>{editor.errors.form}</p>
 
-        <div class="edit-grid">
-          <section class="card">
-            <div class="card-body stack">
-              <div class="field">
-                <label for="job-title">Title</label>
-                <input id="job-title"
-                       name="title"
-                       value={input.title}
-                       placeholder="Senior Backend Engineer"
-                       class={[fieldError(state, "title") && "is-error"]}>
-                <p e:if={fieldError(state, "title")} class="error">{fieldError(state, "title")}</p>
+          <div class="field is-full">
+            <label for="title">Title</label>
+            <input id="title" value={editor.form.title} class={editor.errors.title && "is-error"} placeholder="Senior Backend Engineer">
+            <p class="error" e:if={editor.errors.title}>{editor.errors.title}</p>
+          </div>
+
+          <div class="field">
+            <label for="team">Team</label>
+            <select id="team" value={editor.form.team}>
+              <option e:for={t of TEAMS} value={t}>{t}</option>
+            </select>
+          </div>
+
+          <div class="field">
+            <label for="location">Location</label>
+            <input id="location" value={editor.form.location} class={editor.errors.location && "is-error"} placeholder="Remote, US or EU">
+            <p class="error" e:if={editor.errors.location}>{editor.errors.location}</p>
+          </div>
+
+          <div class="field is-full">
+            <label for="status">Status</label>
+            <select id="status" value={editor.form.status}>
+              <option value="open">Open: listed on the careers page and accepting applications</option>
+              <option value="closed">Closed: hidden from the careers page</option>
+            </select>
+          </div>
+
+          <div class="field is-full">
+            <label for="question">Application question</label>
+            <input id="question" value={editor.form.question} class={editor.errors.question && "is-error"}>
+            <p class="error" e:if={editor.errors.question}>{editor.errors.question}</p>
+            <p class="hint" e:else>Every applicant answers this in a few sentences.</p>
+          </div>
+
+          <div class="field is-full">
+            <label for="description">Description</label>
+            <div class="tabs">
+              <div class="tab-list">
+                <button type="button" class={["tab", editor.tab === "write" && "is-active"]} onclick={() => editor.tab = "write"}>Write</button>
+                <button type="button" class={["tab", editor.tab === "preview" && "is-active"]} onclick={() => editor.tab = "preview"}>Preview</button>
               </div>
-
-              <div class="edit-pair">
-                <div class="field">
-                  <label for="job-team">Team</label>
-                  <input id="job-team"
-                         name="team"
-                         value={input.team}
-                         placeholder="Platform"
-                         class={[fieldError(state, "team") && "is-error"]}>
-                  <p e:if={fieldError(state, "team")} class="error">{fieldError(state, "team")}</p>
-                </div>
-
-                <div class="field">
-                  <label for="job-location">Location</label>
-                  <input id="job-location"
-                         name="location"
-                         value={input.location}
-                         placeholder="Remote (US)"
-                         class={[fieldError(state, "location") && "is-error"]}>
-                  <p e:if={fieldError(state, "location")} class="error">{fieldError(state, "location")}</p>
-                </div>
-              </div>
-
-              <div class="field">
-                <label for="job-status">Status</label>
-                <select id="job-status" name="status" value={input.status}>
-                  <option value="open">Open: listed on the careers page</option>
-                  <option value="closed">Closed: hidden, no new applications</option>
-                </select>
-                <p e:if={fieldError(state, "status")} class="error">{fieldError(state, "status")}</p>
-              </div>
-
-              <div class="field">
-                <label for="job-description">Description</label>
-                <textarea id="job-description"
-                          name="description"
-                          rows="18"
-                          class="edit-md"
-                          value={input.description}/>
-                <p class="hint">Markdown: ## for a heading, - for a list item, **bold**.</p>
+              <div class="tab-panel">
+                <textarea e:if={editor.tab === "write"} id="description" class="is-markdown" value={editor.form.description}></textarea>
+                <div e:else class="md-preview prose">{raw(preview(editor.form.description))}</div>
               </div>
             </div>
-          </section>
+            <p class="hint">Markdown: ## for headings, - for lists, **bold**.</p>
+          </div>
 
-          <section class="card edit-preview">
-            <div class="card-head">
-              <h2>Preview</h2>
-              <p>How the posting reads on the careers page.</p>
+          <div class="field is-full">
+            <div class="row job-edit-actions">
+              <button type="submit" class={["is-primary", editor.saving && "is-loading"]} disabled={editor.saving}>
+                {initial.id ? "Save changes" : "Create job"}
+              </button>
+              <a href={`/jobs/${initial.id}`} target="_blank" rel="noopener" class="link-muted text-sm" e:if={initial.id}>View public posting</a>
             </div>
-            <div class="card-body stack">
-              <div class="stack is-xs">
-                <p class="eyebrow">{input.team || "Team"}</p>
-                <h3 class="edit-preview-title">{input.title || "Job title"}</h3>
-                <p class="cluster is-sm">
-                  <span class="pill">{input.location || "Location"}</span>
-                  <span class={["pill", input.status === "open" && "is-success"]}><span class="pill-dot"></span>{input.status}</span>
-                </p>
-              </div>
-              <div class="prose edit-prose">{raw(renderMarkdown(input.description))}</div>
-            </div>
-          </section>
-        </div>
-      </form>
-    </StaffLayout>
+          </div>
+        </form>
+      </div>
+    </HiringLayout>
   </body>
 </html>

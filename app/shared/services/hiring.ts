@@ -1,39 +1,45 @@
-export const STAGES = ["applied", "screen", "interview", "offer", "hired", "rejected"] as const;
+export const COMPANY = "Wrenbolt";
 
-export type Stage = typeof STAGES[number];
+export type Stage = "applied" | "screen" | "interview" | "offer" | "hired" | "rejected";
 
-export const STAGE_LABELS: Record<Stage, string> = {
-  applied: "Applied",
-  screen: "Screen",
-  interview: "Interview",
-  offer: "Offer",
-  hired: "Hired",
-  rejected: "Rejected",
-};
+export type Recommendation = "strong_no" | "no" | "yes" | "strong_yes";
 
-export const CRITERIA = [
-  { key: "craft", label: "Craft", hint: "Depth of skill in the core work of the role" },
-  { key: "communication", label: "Communication", hint: "Clear, honest, and easy to work through problems with" },
-  { key: "ownership", label: "Ownership", hint: "Takes responsibility and follows through without being chased" },
-] as const;
+export type Criterion = "skills" | "communication" | "ownership";
 
-export type Criterion = typeof CRITERIA[number]["key"];
+export interface StageInfo {
+  id: Stage;
+  label: string;
+  intent: string;
+}
 
-export const RECOMMENDATIONS = ["strong_no", "no", "yes", "strong_yes"] as const;
+export const STAGES: StageInfo[] = [
+  { id: "applied", label: "Applied", intent: "" },
+  { id: "screen", label: "Screen", intent: "is-info" },
+  { id: "interview", label: "Interview", intent: "is-accent" },
+  { id: "offer", label: "Offer", intent: "is-warning" },
+  { id: "hired", label: "Hired", intent: "is-success" },
+  { id: "rejected", label: "Rejected", intent: "is-danger" },
+];
 
-export type Recommendation = typeof RECOMMENDATIONS[number];
+export const CRITERIA: { id: Criterion; label: string; hint: string }[] = [
+  { id: "skills", label: "Skills", hint: "Depth in the craft the role needs" },
+  { id: "communication", label: "Communication", hint: "Clear, structured, listens well" },
+  { id: "ownership", label: "Ownership", hint: "Drives outcomes without being chased" },
+];
 
-export const RECOMMENDATION_LABELS: Record<Recommendation, string> = {
-  strong_no: "Strong no",
-  no: "No",
-  yes: "Yes",
-  strong_yes: "Strong yes",
-};
+export const RECOMMENDATIONS: { id: Recommendation; label: string; intent: string }[] = [
+  { id: "strong_no", label: "Strong no", intent: "is-danger" },
+  { id: "no", label: "No", intent: "is-warning" },
+  { id: "yes", label: "Yes", intent: "is-info" },
+  { id: "strong_yes", label: "Strong yes", intent: "is-success" },
+];
 
-export const SCORE_LABELS = ["", "Poor", "Mixed", "Good", "Excellent"];
+export function stageInfo(id: string): StageInfo {
+  return STAGES.find((s) => s.id === id) ?? STAGES[0];
+}
 
-export function formatScore(score: number | null): string {
-  return score === null ? "" : score.toFixed(1);
+export function recommendationInfo(id: string) {
+  return RECOMMENDATIONS.find((r) => r.id === id) ?? RECOMMENDATIONS[0];
 }
 
 export function initials(name: string): string {
@@ -41,33 +47,24 @@ export function initials(name: string): string {
     .split(/\s+/)
     .filter(Boolean)
     .slice(0, 2)
-    .map((w) => w[0].toUpperCase())
+    .map((part) => part[0].toUpperCase())
     .join("");
 }
 
-export function timeAgo(date: Date, now: Date = new Date()): string {
-  let seconds = Math.max(0, Math.round((+now - +date) / 1000));
-
-  if (seconds < 60) {
-    return "just now";
-  }
-
-  let minutes = Math.round(seconds / 60);
-  if (minutes < 60) {
-    return `${minutes}m ago`;
-  }
-
-  let hours = Math.round(minutes / 60);
-  if (hours < 24) {
-    return `${hours}h ago`;
-  }
-
-  let days = Math.round(hours / 24);
-  if (days < 30) {
-    return `${days}d ago`;
-  }
-
-  return date.toLocaleDateString(undefined, { month: "short", day: "numeric" });
+export function shortDate(d: Date): string {
+  return new Date(d).toLocaleDateString("en-US", { month: "short", day: "numeric" });
 }
 
-export const APPLICATION_QUESTION = "What's something you built or improved that you're proud of, and why?";
+export function daysAgo(d: Date): string {
+  let days = Math.floor((Date.now() - +new Date(d)) / 86400000);
+
+  if (days <= 0) {
+    return "today";
+  }
+
+  if (days === 1) {
+    return "yesterday";
+  }
+
+  return `${days}d ago`;
+}

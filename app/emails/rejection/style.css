@@ -1,9 +1,4 @@
 @import "#app/shared/styles/email.css";
 
-.email .brand {
-  font-size: 13px;
-  font-weight: 600;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
-  color: #2f6fb0;
+.email.rejection {
 }

@@ -1,0 +1,18 @@
+import "./style.css";
+
+<html lang="en" class="page-errors-forbidden" (message: string)>
+  <head>
+    <title>Not available · applyfold</title>
+  </head>
+  <body class="error-page center">
+    <main class="error-panel stack">
+      <p class="eyebrow">Error 403</p>
+      <h1>Not available to you.</h1>
+      <p>{message}</p>
+      <nav class="cluster error-actions">
+        <a href="/hiring" class="button is-primary">Back to hiring</a>
+        <a href="javascript:history.back()" class="button is-ghost">Go back</a>
+      </nav>
+    </main>
+  </body>
+</html>

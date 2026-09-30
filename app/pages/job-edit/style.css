@@ -1,66 +1,26 @@
-@import "#app/shared/templates/staff-layout/style.css";
+@import "#app/shared/styles/page.css";
 
-.edit-head {
-  justify-content: space-between;
-  align-items: end;
-  gap: var(--space-4);
-  flex-wrap: wrap;
+.job-edit-head h1 {
+  margin: 0;
 }
 
-.edit-crumb {
-  font-size: var(--text-sm);
-}
-
-.edit-grid {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
-  gap: var(--space-6);
-  align-items: start;
-}
-
-.edit-pair {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
-  gap: var(--space-4);
-}
-
-.edit-md {
+.job-edit textarea.is-markdown {
+  min-height: 22rem;
   font-family: var(--font-mono);
   font-size: var(--text-sm);
   line-height: 1.6;
 }
 
-.edit-preview {
-  position: sticky;
-  top: 5rem;
+.md-preview {
+  min-height: 22rem;
+  padding: var(--space-4) var(--space-5);
+  border: 1px solid var(--rule);
+  border-radius: var(--radius-md);
+  background: var(--bg-soft);
 }
 
-.edit-preview .card-head p {
-  color: var(--ink-soft);
-  font-size: var(--text-sm);
-}
-
-.edit-preview-title {
-  font-size: var(--text-2xl);
-}
-
-.edit-prose h2 {
-  font-size: var(--text-lg);
-  margin-top: var(--space-6);
-}
-
-@media (max-width: 60rem) {
-  .edit-grid {
-    grid-template-columns: minmax(0, 1fr);
-  }
-
-  .edit-preview {
-    position: static;
-  }
-}
-
-@media (max-width: 40rem) {
-  .edit-pair {
-    grid-template-columns: minmax(0, 1fr);
-  }
+.job-edit-actions {
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: var(--space-3);
 }

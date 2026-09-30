@@ -1,31 +1,34 @@
 import "./style.css";
+import { COMPANY } from "#app/shared/services/hiring";
 
 /**
- * The note an admin can choose to send when a candidate moves to rejected.
+ * The note a candidate receives when they are moved to rejected and an admin
+ * chooses to tell them.
  *
  * @email
  */
-<html (name: string, jobTitle: string, senderName: string)>
+<html (name: string, jobTitle: string)>
   <body class="email rejection">
     <div class="email-wrap">
-      <p class="brand">applyfold careers</p>
-      <h1>An update on your application</h1>
-      <p>Hi {name},</p>
+      <h1>Your application for {jobTitle}</h1>
+      <p>Hi {name.split(" ")[0]},</p>
       <p>
-        Thank you for the time you put into applying for
-        <strong>{jobTitle}</strong>, and for telling us about your work. After
-        careful consideration, we've decided not to move forward with your
-        application for this role.
+        Thank you for the time you put into applying for the {jobTitle} role at
+        {COMPANY}, and for telling us about your work.
       </p>
       <p>
-        This was a hard call among a strong group of candidates, and it isn't a
-        judgment of your ability. We'd be glad to hear from you again for a
-        future opening.
+        After careful consideration, we have decided not to move forward with your
+        application. This was a hard decision, and it is not a judgment of your
+        ability. We had many strong candidates for a small number of roles.
       </p>
-      <p>Wishing you the best in your search,<br>{senderName}, applyfold hiring team</p>
+      <p>
+        We would be glad to hear from you again. Please keep an eye on our careers
+        page for roles that fit.
+      </p>
+      <p>With thanks,<br>The {COMPANY} hiring team</p>
 
       <div class="email-footer">
-        <p>applyfold · <a href="/">See our other open roles</a></p>
+        <p>{COMPANY}, Inc.</p>
       </div>
     </div>
   </body>

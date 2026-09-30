@@ -1,0 +1,51 @@
+import "./style.css";
+import favicon from "#app/shared/assets/favicons/favicon.svg";
+import { CareersLayout } from "#app/shared/templates/careers-layout";
+import { TeamJobs } from "#app/shared/services/jobs";
+import { COMPANY } from "#app/shared/services/hiring";
+
+<html lang="en" class="page-careers" (teams: TeamJobs[], count: number)>
+  <head>
+    <title>Careers at {COMPANY}</title>
+    <meta name="description" content={`Open roles at ${COMPANY}.`}>
+    <link rel="icon" type="image/svg+xml" href={favicon} />
+  </head>
+  <body>
+    <CareersLayout>
+      <div class="page-shell is-form">
+        <div class="careers-hero stack is-md">
+          <p class="eyebrow">We're hiring</p>
+          <h1 class="display">Build the tools the trades run on.</h1>
+          <p class="lede">
+            {COMPANY} helps electricians, plumbers and HVAC crews schedule, dispatch
+            and get paid. We are a small team with a lot of customers, and we are
+            growing.
+          </p>
+        </div>
+
+        <section class="careers-openings stack is-xl">
+          <p class="text-sm" e:if={count > 0}>{count} open {count === 1 ? "role" : "roles"}</p>
+
+          <div class="team-group stack is-sm" e:for={group of teams} id={group.team}>
+            <h2>{group.team}</h2>
+            <div class="job-list">
+              <a class="job-row" e:for={job of group.jobs} href={`/jobs/${job.id}`}>
+                <div class="stack is-xs">
+                  <span class="job-row-title">{job.title}</span>
+                  <span class="job-row-meta">{job.location}</span>
+                </div>
+                <svg class="job-row-arrow" width="20" height="20" viewBox="0 0 20 20" fill="none" aria-hidden="true">
+                  <path d="M4 10h11M11 5l5 5-5 5" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+              </a>
+            </div>
+          </div>
+
+          <div class="callout" e:if={count === 0}>
+            <p>No open roles right now. Check back soon.</p>
+          </div>
+        </section>
+      </div>
+    </CareersLayout>
+  </body>
+</html>

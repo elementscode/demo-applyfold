@@ -1,0 +1,28 @@
+import "./style.css";
+import { COMPANY } from "#app/shared/services/hiring";
+
+<CareersLayout>
+  <div class="app">
+    <header class="careers-header">
+      <div class="page-shell row careers-header-inner">
+        <a href="/" class="careers-brand row">
+          <span class="careers-mark" aria-hidden="true">{COMPANY[0]}</span>
+          {COMPANY}
+          <span class="careers-brand-sub">Careers</span>
+        </a>
+        <a href="/signin" class="link-muted text-sm">Hiring team</a>
+      </div>
+    </header>
+
+    <main class="app-main">
+      <slot/>
+    </main>
+
+    <footer class="careers-footer">
+      <div class="page-shell cluster careers-footer-inner">
+        <span>© 2026 {COMPANY}, Inc.</span>
+        <span>Hiring runs on applyfold</span>
+      </div>
+    </footer>
+  </div>
+</CareersLayout>

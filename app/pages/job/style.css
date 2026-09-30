@@ -1,10 +1,6 @@
-@import "#app/shared/templates/public-layout/style.css";
+@import "#app/shared/styles/page.css";
 
 .job-page {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) 26rem;
-  gap: var(--space-12);
-  align-items: start;
   padding-block: var(--space-10) var(--space-16);
 }
 
@@ -12,88 +8,95 @@
   font-size: var(--text-sm);
 }
 
-.job-header .job-meta {
-  color: var(--ink-soft);
+.job-head h1 {
+  margin: 0;
 }
 
-.job-description h2 {
-  font-size: var(--text-lg);
-  margin-top: var(--space-8);
+.job-meta {
+  color: var(--ink-dim);
 }
 
-.job-apply {
+.job-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 18rem;
+  gap: var(--space-12);
+  align-items: start;
+}
+
+.job-aside {
   position: sticky;
   top: var(--space-6);
 }
 
-.job-apply .card-head p {
-  color: var(--ink-soft);
-  font-size: var(--text-sm);
+.job-aside dl {
+  display: grid;
+  gap: var(--space-3);
+  margin: 0;
 }
 
-
-.apply-done svg {
-  color: var(--success);
+.job-aside dt {
+  font-size: var(--text-xs);
+  color: var(--ink-dim);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
 }
 
-@media (max-width: 60rem) {
-  .job-page {
+.job-aside dd {
+  margin: 0;
+  font-weight: var(--weight-medium);
+}
+
+.apply-card {
+  scroll-margin-top: var(--space-6);
+}
+
+.apply-question {
+  font-weight: var(--weight-medium);
+  color: var(--ink);
+}
+
+.apply-done {
+  text-align: center;
+  padding-block: var(--space-8);
+}
+
+.apply-done-mark {
+  display: inline-grid;
+  place-items: center;
+  width: 3rem;
+  height: 3rem;
+  margin-inline: auto;
+  border-radius: 50%;
+  background: var(--success-100);
+  color: var(--success-700);
+}
+
+@media (max-width: 56rem) {
+  .job-layout {
     grid-template-columns: minmax(0, 1fr);
     gap: var(--space-8);
-    padding-block: var(--space-6) var(--space-10);
   }
 
-  .job-apply {
+  .job-aside {
     position: static;
+    order: -1;
   }
 }
 
-.resume-drop {
-  display: flex;
-  align-items: center;
-  gap: var(--space-3);
-  padding: var(--space-3) var(--space-4);
-  border: 1px dashed var(--rule-strong);
-  border-radius: var(--radius-md);
-  color: var(--ink-soft);
-  cursor: pointer;
-  transition: border-color 120ms ease, background 120ms ease;
-}
-
-.resume-drop:hover,
-.resume-input:focus-visible + .resume-drop {
-  border-color: var(--accent);
-  background: var(--accent-soft);
-  color: var(--ink);
-}
-
-.resume-drop.is-picked {
-  border-style: solid;
-  color: var(--ink);
-}
-
-.resume-drop.is-error {
-  border-color: var(--danger);
-}
-
-.resume-drop svg {
-  flex: none;
-  color: var(--accent);
-}
-
-.resume-drop-text {
-  display: grid;
-  min-width: 0;
-}
-
-.resume-drop-name {
-  font-weight: var(--weight-medium);
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.resume-drop-hint {
+.apply-card input[type="file"] {
   font-size: var(--text-sm);
   color: var(--ink-soft);
+  padding-block: var(--space-1);
+}
+
+.apply-card input[type="file"]::file-selector-button {
+  margin-right: var(--space-3);
+  padding: var(--space-2) var(--space-3);
+  border: 1px solid var(--rule-strong, var(--rule));
+  border-radius: var(--radius-md);
+  background: var(--bg-soft);
+  color: var(--ink);
+  font: inherit;
+  font-weight: var(--weight-medium);
+  cursor: pointer;
 }

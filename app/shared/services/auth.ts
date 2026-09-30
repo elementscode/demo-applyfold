@@ -1,10 +1,9 @@
-import { sql, session, AuthError, ForbiddenError, NotFoundError, redirect } from "@elements/app";
+import { sql, session, redirect, AuthError, ForbiddenError } from "@elements/app";
 
-export interface StaffUser {
+export interface User {
   id: string;
   email: string;
   name: string;
-  title: string;
   role: "admin" | "interviewer";
 }
 
@@ -16,8 +15,8 @@ export function signin(email: string, password: string) {
     throw new AuthError("Enter your email and password.");
   }
 
-  let user = sql<StaffUser>(`
-    select id, email, name, title, role from users
+  let user = sql<User>(`
+    select id, email, name, role from users
      where email = ${address}
        and passwordHash = crypt(${password}, passwordHash)
   `).first();
@@ -32,39 +31,55 @@ export function signin(email: string, password: string) {
 /** @rpc */
 export function signout() {
   session.logout();
-  redirect("/signin");
 }
 
-/**
- * The signed-in hiring team member, read fresh from the database on every call
- * so a role change applies on the next request rather than at next signin.
- */
-export function currentStaff(): StaffUser {
-  session.isLoggedInOrThrow();
+export function currentUser(): User | undefined {
+  let userId = session.get("userId");
 
-  let user = sql<StaffUser>(`
-    select id, email, name, title, role from users where id = ${session.getOrThrow("userId")}
-  `).first();
+  if (!userId) {
+    return undefined;
+  }
+
+  return sql<User>(`select id, email, name, role from users where id = ${userId}`).first();
+}
+
+/** For page routes: a visitor who is not signed in is sent to sign in. */
+export function requireUser(): User {
+  let user = currentUser();
 
   if (!user) {
-    throw new AuthError();
+    redirect("/signin");
+    throw new AuthError("sign in required");
   }
 
   return user;
 }
 
-/** For page routes: a visitor who is not signed in goes to the signin page. */
-export function staffOrRedirect(): StaffUser | undefined {
-  if (!session.isLoggedIn()) {
-    redirect("/signin");
-    return undefined;
+export function requireAdmin(): User {
+  let user = requireUser();
+
+  if (user.role !== "admin") {
+    throw new ForbiddenError("Only admins can do that.");
   }
 
-  return currentStaff();
+  return user;
 }
 
-export function requireAdmin(): StaffUser {
-  let user = currentStaff();
+/** For rpc and LiveTable handlers, where there is no page to redirect. */
+export function userOrThrow(): User {
+  session.isLoggedInOrThrow();
+
+  let user = currentUser();
+
+  if (!user) {
+    throw new AuthError("Sign in again.");
+  }
+
+  return user;
+}
+
+export function adminOrThrow(): User {
+  let user = userOrThrow();
 
   if (user.role !== "admin") {
     throw new ForbiddenError("Only admins can do that.");
@@ -79,18 +94,15 @@ export function isAssigned(applicationId: string, userId: string): boolean {
   `).empty();
 }
 
-/**
- * Admins see every candidate. Interviewers see only the ones assigned to them,
- * and this is the one check every candidate route and rpc goes through.
- */
-export function requireCandidateAccess(applicationId: string): StaffUser {
-  let user = currentStaff();
+/** Admins see every candidate; an interviewer sees only the ones assigned to them. */
+export function canSeeApplication(user: User, applicationId: string): boolean {
+  return user.role === "admin" || isAssigned(applicationId, user.id);
+}
 
-  if (!/^[0-9a-f-]{36}$/i.test(applicationId)) {
-    throw new NotFoundError("candidate not found");
-  }
+export function applicationAccessOrThrow(applicationId: string): User {
+  let user = userOrThrow();
 
-  if (user.role !== "admin" && !isAssigned(applicationId, user.id)) {
+  if (!canSeeApplication(user, applicationId)) {
     throw new ForbiddenError("This candidate is not assigned to you.");
   }
 

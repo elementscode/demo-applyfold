@@ -1,0 +1,71 @@
+import "./style.css";
+import { sendRejection } from "#app/shared/services/candidates";
+
+export interface RejectPromptState {
+  applicationId: string;
+  name: string;
+  email: string;
+  jobTitle: string;
+  sending: boolean;
+  error: string;
+}
+
+export function emptyRejectPrompt(): RejectPromptState {
+  return { applicationId: "", name: "", email: "", jobTitle: "", sending: false, error: "" };
+}
+
+function onSend(prompt: RejectPromptState, onSent: (at: Date) => void) {
+  prompt.sending = true;
+
+  try {
+    let at = sendRejection(prompt.applicationId);
+    onSent(at);
+    prompt.applicationId = "";
+    prompt.error = "";
+  } catch (err: any) {
+    prompt.error = err.message;
+  } finally {
+    prompt.sending = false;
+  }
+}
+
+function onKeydown(e: KeyboardEvent, prompt: RejectPromptState) {
+  if (e.key === "Escape") {
+    prompt.applicationId = "";
+  }
+}
+
+/** Offered right after a candidate moves to rejected. The move itself has already happened. */
+<RejectPrompt (prompt: RejectPromptState, onSent: (at: Date) => void = () => {})>
+  <div class="reject-backdrop" e:if={prompt.applicationId} onkeydown={(e) => onKeydown(e, prompt)}>
+    <div class="card reject-dialog" role="dialog" aria-modal="true" aria-labelledby="reject-title">
+      <div class="card-head">
+        <h2 id="reject-title" class="text-lg">Send {prompt.name.split(" ")[0]} a rejection email?</h2>
+      </div>
+      <div class="card-body stack">
+        <p>
+          {prompt.name} is now in <strong>Rejected</strong>. We can let them know with a
+          short, kind note sent to <strong>{prompt.email}</strong>.
+        </p>
+        <div class="reject-preview stack is-sm">
+          <p><strong>Your application for {prompt.jobTitle}</strong></p>
+          <p>
+            Thank you for the time you put into applying… we have decided not to move
+            forward with your application. This was a hard decision, and it is not a
+            judgment of your ability…
+          </p>
+        </div>
+        <p class="error" role="alert" e:if={prompt.error}>{prompt.error}</p>
+      </div>
+      <div class="card-foot row reject-actions">
+        <button class="is-ghost" onclick={() => prompt.applicationId = ""}>Not now</button>
+        <button class={["is-primary", prompt.sending && "is-loading"]}
+                disabled={prompt.sending}
+                focus={true}
+                onclick={() => onSend(prompt, onSent)}>
+          Send rejection email
+        </button>
+      </div>
+    </div>
+  </div>
+</RejectPrompt>

@@ -1,21 +1,22 @@
-import { Request, Response } from "@elements/app";
-import { staffOrRedirect, requireCandidateAccess } from "#app/shared/services/auth";
-import { loadCandidate, scorecardsFor, interviewersFor, notes } from "./services";
+import { Request, Response, ForbiddenError } from "@elements/app";
+import { requireUser, canSeeApplication } from "#app/shared/services/auth";
+import { getCandidate, listNotes, listScorecards, listAssignees, listInterviewers } from "./services";
 import html from "./template";
 
 export default function route(req: Request, res: Response) {
-  if (!staffOrRedirect()) {
-    return;
-  }
+  let user = requireUser();
+  let id = req.params.id;
 
-  let user = requireCandidateAccess(req.params.id);
-  let candidate = loadCandidate(req.params.id);
+  if (!canSeeApplication(user, id)) {
+    throw new ForbiddenError("This candidate is not assigned to you.");
+  }
 
   return new html({
     user,
-    candidate,
-    scorecards: scorecardsFor(candidate.id, user),
-    interviewers: interviewersFor(candidate.id),
-    notes: notes.view({ applicationId: candidate.id }),
+    candidate: getCandidate(id),
+    notes: listNotes(id),
+    scorecards: listScorecards(id),
+    assignees: listAssignees(id),
+    people: user.role === "admin" ? listInterviewers() : [],
   });
 }

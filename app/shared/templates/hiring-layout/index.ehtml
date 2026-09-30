@@ -1,0 +1,43 @@
+import "./style.css";
+import { redirect } from "@elements/app";
+import { User, signout } from "#app/shared/services/auth";
+import { initials } from "#app/shared/services/hiring";
+
+function onSignout() {
+  signout();
+  redirect("/signin");
+}
+
+<HiringLayout (user: User, active: string = "", wide: boolean = false)>
+  <div class="app">
+    <header class="hiring-bar">
+      <div class={["page-shell row hiring-bar-inner", wide && "is-full"]}>
+        <div class="row gap-6">
+          <a href="/hiring" class="hiring-brand row">
+            <span class="hiring-mark" aria-hidden="true">a</span>
+            applyfold
+          </a>
+          <nav class="hiring-nav cluster is-xs">
+            <a href="/hiring" class={[active === "home" && "is-active"]}>
+              {user.role === "admin" ? "Jobs" : "My candidates"}
+            </a>
+            <a href="/" class="hiring-careers" target="_blank" rel="noopener">Careers page</a>
+          </nav>
+        </div>
+
+        <div class="row hiring-user">
+          <span class="hiring-avatar" aria-hidden="true">{initials(user.name)}</span>
+          <span class="stack is-xs hiring-user-text">
+            <span class="hiring-user-name">{user.name}</span>
+            <span class="hiring-user-role">{user.role}</span>
+          </span>
+          <button class="is-ghost is-sm" onclick={() => onSignout()}>Sign out</button>
+        </div>
+      </div>
+    </header>
+
+    <main class="app-main hiring-main">
+      <slot/>
+    </main>
+  </div>
+</HiringLayout>
