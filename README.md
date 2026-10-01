@@ -29,12 +29,12 @@ Applyfold needed resume uploads, a pipeline board that updates for everyone watc
 
 ### What Elements gave the app
 
-- **A live pipeline board.** `applications` is a LiveTable in `app/pages/board/template.ehtml`, partitioned by job. Dropping a card calls `cards.update`, and a trigger in the schema migration notifies the job's channel on every insert and stage change, so new applications and moves appear on every open board.
-- **File uploads as form fields.** The `apply` rpc in `app/pages/job/template.ehtml` takes the resume as a `File` beside the other fields, checks the PDF signature and size, and stores the bytes. `app/routes/resume.ts` serves the file back to the candidate page's preview.
-- **Server calls as function calls.** Scorecards, notes, assignments and the job editor call `@rpc` functions such as `saveScorecard` and `saveJob` straight from the page. A `ValidationError` carries field messages back to their form.
-- **Email templates.** `app/emails/application-received` and `app/emails/rejection` are templates sent with `email()`. Dragging a candidate to rejected opens a prompt that calls `sendRejection` in `app/shared/services/candidates.ts`.
-- **Sessions and roles.** `app/shared/services/auth.ts` holds the guards: `requireAdmin` for job pages and the board, and `applicationAccessOrThrow` so an interviewer sees only the candidates assigned to them.
-- **Data from SQL files.** Two migrations define the schema and seed three accounts, four jobs, 21 candidates and ten scorecards. Every seeded candidate has a one-page PDF built in SQL by `seedResumePdf`. The project server applied each migration as soon as it was saved.
+- **A live pipeline board.** Applications are a LiveTable, one view per job. Dragging a candidate to a new column saves the move, and a database trigger broadcasts every new application and stage change, so each open board updates whether the change came from the careers page, a candidate's page or another board.
+- **Resume uploads.** The apply form sends the resume as a file field to an `@rpc` function, which checks that the bytes are a real PDF under 5 MB and stores it. The hiring team previews it on the candidate's page.
+- **Server calls as function calls.** Scorecards, notes, interviewer assignments and the job editor call server functions straight from the page with `@rpc`, and validation messages come back to the field they belong to.
+- **Email to applicants.** Each application sends a confirmation from an email template. Dragging a candidate to rejected offers a polite rejection email, sent from a second template.
+- **Sessions and roles.** Admins see every job and board. An interviewer sees only the candidates assigned to them, and one guard enforces it on every page and server call.
+- **Data from SQL files.** Migrations define the schema and seed three accounts, four jobs, 21 candidates and ten scorecards, each candidate with a one-page PDF resume built in SQL. The project server applied each one as soon as it was saved.
 
 ### What the project server gave the agent
 
@@ -43,8 +43,6 @@ The project server runs alongside the agent and answers as soon as a file is sav
 ### What shipped
 
 The app type-checks with zero errors and all 19 tests pass. Every page works on desktop and phone, and live updates arrive across tabs, such as a new application or a board move appearing on another open board.
-
-Start in `app/pages/board/template.ehtml`.
 
 ## Seed data and demo accounts
 
