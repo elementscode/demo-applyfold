@@ -36,9 +36,13 @@ Applyfold needed resume uploads, a pipeline board that updates for everyone watc
 - **Sessions and roles.** `app/shared/services/auth.ts` holds the guards: `requireAdmin` for job pages and the board, and `applicationAccessOrThrow` so an interviewer sees only the candidates assigned to them.
 - **Data from SQL files.** Two migrations define the schema and seed three accounts, four jobs, 21 candidates and ten scorecards. Every seeded candidate has a one-page PDF built in SQL by `seedResumePdf`. The project server applied each migration as soon as it was saved.
 
-### What the agent got from the tooling
+### What the project server gave the agent
 
-The agent ran 26 builds in 17 minutes. It checked its work after each edit and kept going. The build caught five type errors, among them a possibly undefined partition key and a string passed where a tab name was expected, each pointing to its file and line. When a test passed an async callback to a helper that expected a plain one, the message showed the fix. It read 42 manual pages as it reached each part, from `livetable/partitions` to `style/email` and `style/components/tabs`, then wrote 19 tests. In a real browser it dragged cards, watched a new application arrive on an open board, and checked seven pages at phone width.
+The project server runs alongside the agent and answers as soon as a file is saved: it type-checks the templates, TypeScript and SQL, applies migrations and reruns the tests, so every question came back right away and the agent kept building.
+
+### What shipped
+
+The app type-checks with zero errors and all 19 tests pass. Every page was checked on desktop and phone before publishing, along with a board move watched live from a second tab, and the repo was installed fresh from GitHub and run before the demo went live.
 
 Start in `app/pages/board/template.ehtml`.
 
