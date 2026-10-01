@@ -23,6 +23,25 @@ app.
 elements create applyfold -scaffold=elementscode/demo-applyfold
 ```
 
+## How it's built
+
+Applyfold needed resume uploads, a pipeline board that updates for everyone watching, emails to applicants, and two kinds of hiring accounts. Each of those is a part of Elements, so the agent spent its 17 minutes on the hiring workflow itself.
+
+### What Elements gave the app
+
+- **A live pipeline board.** `applications` is a LiveTable in `app/pages/board/template.ehtml`, partitioned by job. Dropping a card calls `cards.update`, and a trigger in the schema migration notifies the job's channel on every insert and stage change, so new applications and moves appear on every open board.
+- **File uploads as form fields.** The `apply` rpc in `app/pages/job/template.ehtml` takes the resume as a `File` beside the other fields, checks the PDF signature and size, and stores the bytes. `app/routes/resume.ts` serves the file back to the candidate page's preview.
+- **Server calls as function calls.** Scorecards, notes, assignments and the job editor call `@rpc` functions such as `saveScorecard` and `saveJob` straight from the page. A `ValidationError` carries field messages back to their form.
+- **Email templates.** `app/emails/application-received` and `app/emails/rejection` are templates sent with `email()`. Dragging a candidate to rejected opens a prompt that calls `sendRejection` in `app/shared/services/candidates.ts`.
+- **Sessions and roles.** `app/shared/services/auth.ts` holds the guards: `requireAdmin` for job pages and the board, and `applicationAccessOrThrow` so an interviewer sees only the candidates assigned to them.
+- **Data from SQL files.** Two migrations define the schema and seed three accounts, four jobs, 21 candidates and ten scorecards. Every seeded candidate has a one-page PDF built in SQL by `seedResumePdf`. The project server applied each migration as soon as it was saved.
+
+### What the agent got from the tooling
+
+The agent ran 26 builds in 17 minutes. By the build's own timer, the median build finished in 9 milliseconds, so it checked its work after each edit and kept going. The build caught five type errors, among them a possibly undefined partition key and a string passed where a tab name was expected, each pointing to its file and line. When a test passed an async callback to a helper that expected a plain one, the message showed the fix. It read 42 manual pages as it reached each part, from `livetable/partitions` to `style/email` and `style/components/tabs`, then wrote 26 tests. In a real browser it dragged cards, watched a new application arrive on an open board, and checked seven pages at phone width.
+
+Start in `app/pages/board/template.ehtml`.
+
 ## Seed data and demo accounts
 
 The careers page belongs to Wrenbolt, a made-up startup that builds software
