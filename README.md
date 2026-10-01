@@ -30,10 +30,15 @@ Applyfold needed resume uploads, a pipeline board that updates for everyone watc
 ### What Elements gave the app
 
 - **A live pipeline board.** Applications are a LiveTable, one view per job. Dragging a candidate to a new column saves the move, and a database trigger broadcasts every new application and stage change, so each open board updates whether the change came from the careers page, a candidate's page or another board.
+
 - **Resume uploads.** The apply form sends the resume as a file field to an `@rpc` function, which checks that the bytes are a real PDF under 5 MB and stores it. The hiring team previews it on the candidate's page.
+
 - **Server calls as function calls.** Scorecards, notes, interviewer assignments and the job editor call server functions straight from the page with `@rpc`, and validation messages come back to the field they belong to.
+
 - **Email to applicants.** Each application sends a confirmation from an email template. Dragging a candidate to rejected offers a polite rejection email, sent from a second template.
+
 - **Sessions and roles.** Admins see every job and board. An interviewer sees only the candidates assigned to them, and one guard enforces it on every page and server call.
+
 - **Data from SQL files.** Migrations define the schema and seed three accounts, four jobs, 21 candidates and ten scorecards, each candidate with a one-page PDF resume built in SQL. The project server applied each one as soon as it was saved.
 
 ### What the project server gave the agent
