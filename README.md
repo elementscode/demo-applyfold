@@ -38,7 +38,7 @@ Applyfold needed resume uploads, a pipeline board that updates for everyone watc
 
 ### What the agent got from the tooling
 
-The agent ran 26 builds in 17 minutes. By the build's own timer, the median build finished in 9 milliseconds, so it checked its work after each edit and kept going. The build caught five type errors, among them a possibly undefined partition key and a string passed where a tab name was expected, each pointing to its file and line. When a test passed an async callback to a helper that expected a plain one, the message showed the fix. It read 42 manual pages as it reached each part, from `livetable/partitions` to `style/email` and `style/components/tabs`, then wrote 26 tests. In a real browser it dragged cards, watched a new application arrive on an open board, and checked seven pages at phone width.
+The agent ran 26 builds in 17 minutes. By the build's own timer, the median build finished in 4 milliseconds, so it checked its work after each edit and kept going. The build caught five type errors, among them a possibly undefined partition key and a string passed where a tab name was expected, each pointing to its file and line. When a test passed an async callback to a helper that expected a plain one, the message showed the fix. It read 42 manual pages as it reached each part, from `livetable/partitions` to `style/email` and `style/components/tabs`, then wrote 26 tests. In a real browser it dragged cards, watched a new application arrive on an open board, and checked seven pages at phone width.
 
 Start in `app/pages/board/template.ehtml`.
 
