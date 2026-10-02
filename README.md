@@ -10,9 +10,6 @@ A careers page with PDF resume uploads, a drag-and-drop pipeline board for each 
 
 ## Agent specs
 
-What one run of the prompt below took, from an empty Elements project to this
-app.
-
 - **Agent:** Claude Code, Opus 5.5 Medium
 - **Time:** 17 min
 - **Cost:** $6.75 at API rates, September 2026
@@ -69,33 +66,7 @@ the accounts. Every account's password is `applyfold`.
 Emails (application confirmations and rejections) are written to the app log
 in development.
 
-## The prompt
-
-```text
-Build an applicant tracking system named applyfold for a growing startup, with a
-public careers page.
-
-PUBLIC
-- Careers page listing open jobs, each with a description page.
-- Apply: name, email, phone, resume upload (PDF), a short answer.
-- The applicant gets a confirmation email.
-
-HIRING TEAM (accounts: admin and interviewer)
-- Admins create jobs (title, team, location, markdown description, open or
-  closed).
-- Each job's pipeline board: applied, screen, interview, offer, hired,
-  rejected. Drag a candidate to move them.
-- Candidate page: resume preview, application answers, notes, and interview
-  scorecards (1 to 4 on each of three criteria plus a recommendation).
-- Interviewers see only candidates assigned to them and fill in scorecards.
-- Moving a candidate to rejected offers to send a polite rejection email.
-
-Seed one admin, two interviewers, three open jobs, and fifteen candidates
-across stages with a few scorecards. Show the seeded logins on the sign-in
-page.
-
-Board moves and new applications update in real time.
-```
+**Demo:** [Applyfold](https://elements.dev/demos/01a0f3be-aac0-7295-8f51-ea54afb37bfb)
 
 ## License
 
