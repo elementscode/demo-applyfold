@@ -1,30 +1,16 @@
-![Applyfold, an applicant tracking system built with Elements: the Senior Backend Engineer pipeline board with candidates across applied, screen, interview, offer, hired and rejected, a new application just arrived, and scorecard averages.](https://elements.dev/demos/01a0f3be-aac0-7295-8f51-ea54afb37bfb/poster?v=5cdfe60df4dd)
+![Applicant tracking with a pipeline board, built by Claude Code on Elements: the Senior Backend Engineer pipeline board with candidates across applied, screen, interview, offer, hired and rejected, a new application just arrived, and scorecard averages.](https://elements.dev/demos/01a0f3be-aac0-7295-8f51-ea54afb37bfb/poster?v=5cdfe60df4dd)
 
-# Applyfold
+# Applicant tracking with a pipeline board, built by Claude Code on Elements
 
-> A demo app built with [Elements](https://elements.dev).
+> Applyfold is a full-stack app built with Claude Code on Elements.
 
 A careers page with PDF resume uploads, a drag-and-drop pipeline board for each job, and interview scorecards, all live.
 
-**Demo:** [Applyfold](https://elements.dev/demos/01a0f3be-aac0-7295-8f51-ea54afb37bfb)
-
-## Agent specs
-
-- **Agent:** Claude Code, Opus 5.5 Medium
-- **Time:** 17 min
-- **Cost:** $6.75 at API rates, September 2026
-
-## Get started
-
-```bash
-elements create applyfold -scaffold=elementscode/demo-applyfold
-```
+[Run this app on your machine](https://elements.dev/demos/01a0f3be-aac0-7295-8f51-ea54afb37bfb). Use this demo as inspiration, or as the starting point for your own app. Your agent creates a new app with this one as the scaffold, and you prompt it to add whatever features you want.
 
 ## How it's built
 
 Applyfold needed resume uploads, a pipeline board that updates for everyone watching, emails to applicants, and two kinds of hiring accounts. Each of those is a part of Elements, so the agent spent its 17 minutes on the hiring workflow itself.
-
-### What Elements gave the app
 
 - **A live pipeline board.** Applications are a LiveTable, one view per job. Dragging a candidate to a new column saves the move, and a database trigger broadcasts every new application and stage change, so each open board updates whether the change came from the careers page, a candidate's page or another board.
 
@@ -38,36 +24,6 @@ Applyfold needed resume uploads, a pipeline board that updates for everyone watc
 
 - **Data from SQL files.** Migrations define the schema and seed three accounts, four jobs, 21 candidates and ten scorecards, each candidate with a one-page PDF resume built in SQL. The project server applied each one as soon as it was saved.
 
-### What the project server gave the agent
+## Why Elements
 
-The project server runs alongside the agent and answers as soon as a file is saved: it type-checks the templates, TypeScript and SQL, applies migrations and reruns the tests, so every question came back right away and the agent kept building.
-
-### What shipped
-
-The app type-checks with zero errors and all 19 tests pass. Every page works on desktop and phone, and live updates arrive across tabs, such as a new application or a board move appearing on another open board.
-
-## Seed data and demo accounts
-
-The careers page belongs to Wrenbolt, a made-up startup that builds software
-for trade crews; the name is set in `app/shared/services/hiring.ts`. The seed
-creates four jobs (Senior Backend Engineer, Product Designer and Customer
-Success Manager open, Founding Recruiter closed) and twenty-one candidates
-across every stage, each with a one-page PDF resume. Ten interview scorecards,
-several notes, and interviewer assignments fill out the boards. The public
-careers page is at `/`, and the hiring team signs in at `/signin`, which lists
-the accounts. Every account's password is `applyfold`.
-
-| Email                  | Name            | Role        |
-| ---------------------- | --------------- | ----------- |
-| admin@wrenbolt.test    | Maya Okafor     | admin       |
-| jonas@wrenbolt.test    | Jonas Lindqvist | interviewer |
-| priya@wrenbolt.test    | Priya Raman     | interviewer |
-
-Emails (application confirmations and rejections) are written to the app log
-in development.
-
-**Demo:** [Applyfold](https://elements.dev/demos/01a0f3be-aac0-7295-8f51-ea54afb37bfb)
-
-## License
-
-MIT. See [LICENSE](LICENSE).
+Elements is an integrated full-stack app framework and a project server. The project server checks the agent's work as it builds: it type-checks the server and browser code, analyzes the program, applies migrations and runs the tests, then reports the results to the agent. A security mistake, such as calling a server-only function from the browser, is a compile error. The agent reads the report and fixes its own mistakes before it tells you a feature is done. The same checks run on every feature you ask for next.
